@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - Messages</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="user-info">
+                <div class="user-avatar" id="currentUserAvatar">😀</div>
+                <div class="user-details">
+                    <h2 id="currentUsername">User</h2>
+                    <p>Online now</p>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="online-users">
+            <h3>ONLINE USERS (<span id="userCount">0</span>)</h3>
+            <div class="users-list" id="usersList"></div>
+        </div>
+
+        <div class="messages-area" id="messagesArea">
+            <div class="empty-state">
+                <div class="empty-icon">💬</div>
+                <p>Start chatting with others!</p>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-container">
+                <input
+                    type="text"
+                    class="message-input"
+                    id="messageInput"
+                    placeholder="Type a message..."
+                    maxlength="500"
+                    autocomplete="off"
+                >
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // YOUR REAL Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAM9AVeKv8po7D16h6XM422Eh0heq3hAW0",
+            authDomain: "chat-app-with-claude.firebaseapp.com",
+            databaseURL: "https://chat-app-with-claude-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "chat-app-with-claude",
+            storageBucket: "chat-app-with-claude.firebasestorage.app",
+            messagingSenderId: "163903134612",
+            appId: "1:163903134612:web:8317fa2bc619563d0b8d81"
+        };
+
+        let database;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('✅ Firebase connected!');
+        } catch (error) {
+            console.error('❌ Firebase error:', error);
+            alert('Error connecting to Firebase!');
+        }
+
+        const currentUser = JSON.parse(localStorage.getItem('chatapp_user'));
+
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('currentUserAvatar').textContent = currentUser.avatar;
+        document.getElementById('currentUsername').textContent = currentUser.username;
+
+        // Mark user as online
+        const onlineUserRef = database.ref('online/' + currentUser.id);
+        onlineUserRef.set({
+            username: currentUser.username,
+            avatar: currentUser.avatar,
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // Remove user when they disconnect
+        onlineUserRef.onDisconnect().remove();
+
+        // Listen for online users
+        database.ref('online').on('value', (snapshot) => {
+            const onlineUsers = snapshot.val() || {};
+            const usersList = document.getElementById('usersList');
+            const userCount = document.getElementById('userCount');
+
+            usersList.innerHTML = '';
+            let count = 0;
+
+            for (let userId in onlineUsers) {
+                if (userId !== currentUser.id) {
+                    count++;
+                    const user = onlineUsers[userId];
+                    const userElement = document.createElement('div');
+                    userElement.className = 'online-user';
+                    userElement.innerHTML = `
+                        <div class="online-user-avatar">${user.avatar}</div>
+                        <div class="online-user-name">${user.username}</div>
+                    `;
+                    usersList.appendChild(userElement);
+                }
+            }
+
+            userCount.textContent = count;
+        });
+
+        // Listen for messages
+        database.ref('messages').on('value', (snapshot) => {
+            const messages = snapshot.val() || {};
+            const messagesArea = document.getElementById('messagesArea');
+
+            const messagesList = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+
+            if (messagesList.length === 0) {
+                messagesArea.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">💬</div>
+                        <p>Start chatting with others!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            messagesArea.innerHTML = messagesList.map(msg => {
+                const isOwn = msg.userId === currentUser.id;
+                const messageClass = isOwn ? 'message own' : 'message';
+
+                return `
+                    <div class="${messageClass}">
+                        <div class="message-avatar">${msg.avatar}</div>
+                        <div class="message-content">
+                            <div class="message-header">${msg.username}</div>
+                            <div class="message-bubble">${escapeHtml(msg.text)}</div>
+                            <div class="message-time">${formatTime(msg.timestamp)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        });
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const text = messageInput.value.trim();
+
+            if (!text) return;
+
+            const message = {
+                userId: currentUser.id,
+                username: currentUser.username,
+                avatar: currentUser.avatar,
+                text: text,
+                timestamp: Date.now()
+            };
+
+            database.ref('messages').push(message)
+                .then(() => {
+                    messageInput.value = '';
+                    messageInput.focus();
+                })
+                .catch(error => {
+                    alert('Error sending message: ' + error.message);
+                });
+        }
+
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                onlineUserRef.remove();
+                localStorage.removeItem('chatapp_user');
+                window.location.href = 'index.html';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+    </script>
+</body>
+</html>
