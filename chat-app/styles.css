@@ -1739,7 +1739,7 @@ body {
         font-size: 15px;
     }
 
-    .notification-toggle-btn {
+    .call-btn, .notification-toggle-btn, .settings-btn {
         font-size: 22px;
         width: 48px;
         height: 48px;
@@ -1747,6 +1747,21 @@ body {
 
     .header-actions {
         gap: 8px;
+    }
+
+    .chat-container {
+        height: 100vh;
+        max-height: 100vh;
+    }
+
+    .users-section {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .main-content {
+        flex: 1;
+        min-width: 0;
     }
 
     .online-users {
@@ -1912,6 +1927,120 @@ body {
 
     .empty-icon {
         font-size: 56px;
+    }
+
+    /* Make buttons easier to tap */
+    .send-btn, .emoji-btn, .image-btn, .gif-btn, .gift-btn {
+        min-width: 48px;
+        min-height: 48px;
+        font-size: 20px;
+        padding: 12px;
+    }
+
+    .message-input {
+        font-size: 16px;
+        padding: 14px;
+    }
+
+    /* Mobile-friendly modals */
+    .user-profile-modal, .profile-modal {
+        padding: 0;
+    }
+
+    .user-profile-content, .profile-modal-content {
+        width: 95%;
+        max-width: 95%;
+        margin: 10px;
+    }
+
+    /* Call modal mobile */
+    .call-content, .incoming-call-content {
+        width: 95%;
+        padding: 40px 30px;
+    }
+
+    .call-avatar {
+        font-size: 80px;
+    }
+
+    .call-username {
+        font-size: 26px;
+    }
+
+    .call-control-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+    }
+
+    /* Gift picker mobile */
+    .gift-grid {
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        padding: 15px;
+    }
+
+    .gift-item {
+        padding: 12px;
+    }
+
+    .gift-emoji {
+        font-size: 32px;
+    }
+
+    /* GIF picker mobile */
+    .gif-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+    .chat-header {
+        padding: 12px;
+    }
+
+    .user-details h2 {
+        font-size: 18px;
+    }
+
+    .user-details p {
+        font-size: 12px;
+    }
+
+    .back-btn, .logout-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .call-btn, .notification-toggle-btn, .settings-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+    }
+
+    .header-actions {
+        gap: 6px;
+    }
+
+    .message-bubble {
+        font-size: 15px;
+        padding: 12px 14px;
+    }
+
+    .gift-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
+
+    .call-avatar {
+        font-size: 70px;
+    }
+
+    .call-username {
+        font-size: 22px;
+    }
+
+    .call-timer {
+        font-size: 36px;
     }
 }
 
