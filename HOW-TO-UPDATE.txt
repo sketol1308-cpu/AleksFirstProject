@@ -1,0 +1,45 @@
+HOW TO UPDATE YOUR CHATAPP
+===========================
+
+After making changes to any files (index.html, chat.html, styles.css), follow these steps:
+
+STEP 1: Open Command Prompt
+----------------------------
+Press Windows Key + R
+Type: cmd
+Press Enter
+
+STEP 2: Navigate to your project folder
+----------------------------------------
+cd D:\Alex\itgenio\Projects\chat-app
+
+STEP 3: Add your changes
+-------------------------
+git add .
+
+STEP 4: Commit your changes
+----------------------------
+git commit -m "Describe what you changed here"
+
+Example:
+git commit -m "Changed avatar emojis"
+git commit -m "Updated chat colors"
+git commit -m "Fixed message display bug"
+
+STEP 5: Push to GitHub
+-----------------------
+git push
+
+STEP 6: Wait 1-2 minutes
+------------------------
+GitHub Pages will automatically update your live site!
+
+Your live link: https://sketol1308-cpu.github.io/AleksFirstProject/
+
+
+QUICK REFERENCE:
+----------------
+cd D:\Alex\itgenio\Projects\chat-app
+git add .
+git commit -m "Your update description"
+git push

@@ -120,30 +120,45 @@
         function playNotificationSound() {
             if (!notificationEnabled) return;
 
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
 
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
 
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
 
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
 
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (error) {
+                console.error('Error playing notification sound:', error);
+            }
         }
 
         function toggleNotifications() {
             notificationEnabled = !notificationEnabled;
             localStorage.setItem('chatapp_notifications', notificationEnabled);
-            const icon = document.getElementById('notificationIcon');
-            icon.textContent = notificationEnabled ? '🔔' : '🔕';
-            icon.title = notificationEnabled ? 'Notifications ON' : 'Notifications OFF';
+            updateNotificationIcon();
         }
+
+        function updateNotificationIcon() {
+            const icon = document.getElementById('notificationIcon');
+            if (icon) {
+                icon.textContent = notificationEnabled ? '🔔' : '🔕';
+                icon.title = notificationEnabled ? 'Notifications ON' : 'Notifications OFF';
+            }
+        }
+
+        // Set initial notification icon state
+        setTimeout(() => {
+            updateNotificationIcon();
+        }, 100);
 
         // Mark user as online
         const onlineUserRef = database.ref('online/' + currentUser.id);
@@ -250,23 +265,34 @@
             }
 
             // Check for new messages and play notification sound
-            const currentMessageIds = new Set(messagesList.map(msg => msg.messageId));
-            let hasNewMessageFromOthers = false;
+            try {
+                const currentMessageIds = new Set(messagesList.map(msg => msg.messageId));
+                let hasNewMessageFromOthers = false;
 
-            for (const msg of messagesList) {
-                if (!previousMessageIds.has(msg.messageId) && msg.userId !== currentUser.id) {
-                    hasNewMessageFromOthers = true;
-                    break;
+                for (const msg of messagesList) {
+                    if (!previousMessageIds.has(msg.messageId) && msg.userId !== currentUser.id) {
+                        hasNewMessageFromOthers = true;
+                        break;
+                    }
                 }
+
+                if (hasNewMessageFromOthers && previousMessageIds.size > 0) {
+                    playNotificationSound();
+                }
+
+                previousMessageIds = currentMessageIds;
+            } catch (error) {
+                console.error('Error in notification detection:', error);
             }
 
-            if (hasNewMessageFromOthers && previousMessageIds.size > 0) {
-                playNotificationSound();
-            }
+            try {
+                messagesArea.innerHTML = messagesList.map(msg => {
+                // Skip messages with missing required data
+                if (!msg || !msg.messageId || !msg.text || !msg.userId) {
+                    console.warn('Skipping invalid message:', msg);
+                    return '';
+                }
 
-            previousMessageIds = currentMessageIds;
-
-            messagesArea.innerHTML = messagesList.map(msg => {
                 const isOwn = msg.userId === currentUser.id;
                 const messageClass = isOwn ? 'message own' : 'message';
                 const editButton = isOwn ? `<button class="edit-msg-btn" onclick="startEditMessage('${msg.messageId}')" title="Edit message">✏️</button>` : '';
@@ -332,12 +358,12 @@
                         </div>
                     </div>
                 `;
-            }).join('');
+                }).join('');
 
-            messagesArea.scrollTop = messagesArea.scrollHeight;
+                messagesArea.scrollTop = messagesArea.scrollHeight;
 
-            // Add context menu (right-click) listeners
-            document.querySelectorAll('.message').forEach(messageEl => {
+                // Add context menu (right-click) listeners
+                document.querySelectorAll('.message').forEach(messageEl => {
                 messageEl.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
 
@@ -388,10 +414,14 @@
                 }
             });
 
-            messagesArea.scrollTop = messagesArea.scrollHeight;
+                messagesArea.scrollTop = messagesArea.scrollHeight;
 
-            // Setup Intersection Observer for read receipts
-            setupReadReceiptObserver();
+                // Setup Intersection Observer for read receipts
+                setupReadReceiptObserver();
+            } catch (error) {
+                console.error('Error in message display:', error);
+                messagesArea.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Error loading messages. Please refresh the page.</p></div>';
+            }
         }
 
         // Read Receipt Observer

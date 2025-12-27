@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="app-logo">
+                <div class="logo-icon">💬</div>
+                <h1>ChatApp</h1>
+                <p class="tagline">Connect and chat in real-time</p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+                <button class="tab-btn" onclick="switchTab('signup')">Create Account</button>
+            </div>
+
+            <div id="loginForm" class="form-section active">
+                <h2>Welcome Back!</h2>
+                <div id="loginMessage" style="background: #4CAF50; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: bold;"></div>
+                <form id="loginFormElement">
+                    <div class="input-group">
+                        <label for="loginUsername">Username</label>
+                        <input type="text" id="loginUsername" placeholder="Enter your username" required>
+                    </div>
+                    <button type="submit" class="btn-primary" id="loginBtn">Login</button>
+                </form>
+            </div>
+
+            <div id="signupForm" class="form-section">
+                <h2>Create Account</h2>
+                <div id="signupMessage" style="background: #4CAF50; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: bold;"></div>
+                <form id="signupFormElement">
+                    <div class="input-group">
+                        <label for="signupUsername">Username</label>
+                        <input type="text" id="signupUsername" placeholder="Choose a username" required minlength="3">
+                    </div>
+                    <div class="input-group">
+                        <label for="signupAvatar">Choose Avatar</label>
+                        <div class="avatar-selector" id="avatarSelector">
+                            <div class="avatar-option selected" data-avatar="😀">😀</div>
+                            <div class="avatar-option" data-avatar="😎">😎</div>
+                            <div class="avatar-option" data-avatar="🤩">🤩</div>
+                            <div class="avatar-option" data-avatar="🥳">🥳</div>
+                            <div class="avatar-option" data-avatar="😺">😺</div>
+                            <div class="avatar-option" data-avatar="🦊">🦊</div>
+                            <div class="avatar-option" data-avatar="🐼">🐼</div>
+                            <div class="avatar-option" data-avatar="🦄">🦄</div>
+                        </div>
+                        <input type="hidden" id="selectedAvatar" value="😀" required>
+                    </div>
+                    <button type="submit" class="btn-primary" id="signupBtn">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const tabs = document.querySelectorAll('.tab-btn');
+
+            tabs.forEach(btn => btn.classList.remove('active'));
+
+            if (tab === 'login') {
+                loginForm.classList.add('active');
+                signupForm.classList.remove('active');
+                tabs[0].classList.add('active');
+            } else {
+                loginForm.classList.remove('active');
+                signupForm.classList.add('active');
+                tabs[1].classList.add('active');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Avatar selection
+            const avatarOptions = document.querySelectorAll('.avatar-option');
+            avatarOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const emoji = this.getAttribute('data-avatar');
+                    document.getElementById('selectedAvatar').value = emoji;
+
+                    avatarOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+
+            // Get all users from localStorage
+            function getAllUsers() {
+                const users = localStorage.getItem('chatapp_all_users');
+                return users ? JSON.parse(users) : [];
+            }
+
+            function saveAllUsers(users) {
+                localStorage.setItem('chatapp_all_users', JSON.stringify(users));
+            }
+
+            // Login form
+            const loginFormElement = document.getElementById('loginFormElement');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginMessage = document.getElementById('loginMessage');
+
+            loginFormElement.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                loginMessage.style.display = 'block';
+                loginMessage.textContent = '✓ Checking username...';
+                loginBtn.disabled = true;
+
+                const username = document.getElementById('loginUsername').value.trim();
+
+                if (!username) {
+                    loginMessage.textContent = '⚠ Please enter a username';
+                    loginMessage.style.background = '#ff9800';
+                    loginBtn.disabled = false;
+                    return;
+                }
+
+                const allUsers = getAllUsers();
+                const user = allUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+
+                if (user) {
+                    loginMessage.textContent = '✓ User found! Logging in...';
+                    localStorage.setItem('chatapp_current_user', JSON.stringify(user));
+                    setTimeout(() => {
+                        window.location.href = 'working-chat.html';
+                    }, 500);
+                } else {
+                    loginMessage.textContent = '❌ Username not found. Please create an account!';
+                    loginMessage.style.background = '#f44336';
+                    loginBtn.disabled = false;
+                }
+            });
+
+            // Signup form
+            const signupFormElement = document.getElementById('signupFormElement');
+            const signupBtn = document.getElementById('signupBtn');
+            const signupMessage = document.getElementById('signupMessage');
+
+            signupFormElement.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                signupMessage.style.display = 'block';
+                signupMessage.textContent = '✓ Creating account...';
+                signupBtn.disabled = true;
+
+                const username = document.getElementById('signupUsername').value.trim();
+                const avatar = document.getElementById('selectedAvatar').value;
+
+                if (!username || username.length < 3) {
+                    signupMessage.textContent = '⚠ Username must be at least 3 characters';
+                    signupMessage.style.background = '#ff9800';
+                    signupBtn.disabled = false;
+                    return;
+                }
+
+                const allUsers = getAllUsers();
+                const userExists = allUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+
+                if (userExists) {
+                    signupMessage.textContent = '❌ Username already taken!';
+                    signupMessage.style.background = '#f44336';
+                    signupBtn.disabled = false;
+                    return;
+                }
+
+                const newUser = {
+                    id: Date.now().toString(),
+                    username: username,
+                    avatar: avatar,
+                    joinedAt: Date.now()
+                };
+
+                allUsers.push(newUser);
+                saveAllUsers(allUsers);
+
+                signupMessage.textContent = '✓ Account created! Redirecting...';
+                localStorage.setItem('chatapp_current_user', JSON.stringify(newUser));
+
+                setTimeout(() => {
+                    window.location.href = 'working-chat.html';
+                }, 1000);
+            });
+        });
+    </script>
+</body>
+</html>
