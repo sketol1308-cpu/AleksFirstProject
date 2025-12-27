@@ -32,6 +32,15 @@
             </div>
         </div>
 
+        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            <span id="typingText"></span>
+            <span class="typing-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </span>
+        </div>
+
         <div class="input-area">
             <div class="emoji-picker" id="emojiPicker" style="display: none;">
                 <div class="emoji-header">
@@ -110,6 +119,9 @@
 
         // Remove user when they disconnect
         onlineUserRef.onDisconnect().remove();
+
+        // Remove typing status when they disconnect
+        database.ref('typing/public/' + currentUser.id).onDisconnect().remove();
 
         // Listen for online users
         database.ref('online').on('value', (snapshot) => {
@@ -260,6 +272,7 @@
             document.getElementById('backBtn').style.display = 'block';
 
             updateMessagesListener();
+            updateTypingListener();
         }
 
         function backToPublicChat() {
@@ -270,11 +283,105 @@
             document.getElementById('backBtn').style.display = 'none';
 
             updateMessagesListener();
+            updateTypingListener();
         }
 
-        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+        // Typing Indicator Logic
+        let typingTimeout;
+        let isTyping = false;
+
+        function setTypingStatus(typing) {
+            let typingPath;
+            if (chatMode === 'public') {
+                typingPath = 'typing/public/' + currentUser.id;
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                typingPath = 'typing/private/' + chatId + '/' + currentUser.id;
+            } else {
+                return;
+            }
+
+            if (typing) {
+                database.ref(typingPath).set({
+                    username: currentUser.username,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            } else {
+                database.ref(typingPath).remove();
+            }
+        }
+
+        // Listen for typing status
+        function updateTypingListener() {
+            // Remove old listeners
+            database.ref('typing/public').off();
+            database.ref('typing/private').off();
+
+            if (chatMode === 'public') {
+                database.ref('typing/public').on('value', (snapshot) => {
+                    displayTypingIndicator(snapshot.val());
+                });
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                database.ref('typing/private/' + chatId).on('value', (snapshot) => {
+                    displayTypingIndicator(snapshot.val());
+                });
+            }
+        }
+
+        function displayTypingIndicator(typingUsers) {
+            const typingIndicator = document.getElementById('typingIndicator');
+            const typingText = document.getElementById('typingText');
+
+            if (!typingUsers) {
+                typingIndicator.style.display = 'none';
+                return;
+            }
+
+            const usersTyping = [];
+            for (let userId in typingUsers) {
+                if (userId !== currentUser.id) {
+                    usersTyping.push(typingUsers[userId].username);
+                }
+            }
+
+            if (usersTyping.length === 0) {
+                typingIndicator.style.display = 'none';
+            } else if (usersTyping.length === 1) {
+                typingText.textContent = usersTyping[0] + ' is typing';
+                typingIndicator.style.display = 'flex';
+            } else if (usersTyping.length === 2) {
+                typingText.textContent = usersTyping[0] + ' and ' + usersTyping[1] + ' are typing';
+                typingIndicator.style.display = 'flex';
+            } else {
+                typingText.textContent = usersTyping.length + ' people are typing';
+                typingIndicator.style.display = 'flex';
+            }
+        }
+
+        updateTypingListener();
+
+        const messageInput = document.getElementById('messageInput');
+
+        messageInput.addEventListener('input', () => {
+            if (!isTyping) {
+                isTyping = true;
+                setTypingStatus(true);
+            }
+
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                isTyping = false;
+                setTypingStatus(false);
+            }, 2000);
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 sendMessage();
+                clearTimeout(typingTimeout);
+                isTyping = false;
+                setTypingStatus(false);
             }
         });
 
