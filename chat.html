@@ -266,13 +266,16 @@
 
             // Check for new messages and play notification sound
             try {
-                const currentMessageIds = new Set(messagesList.map(msg => msg.messageId));
+                const currentMessageIds = new Set(messagesList.map(msg => msg.messageId).filter(id => id));
                 let hasNewMessageFromOthers = false;
 
                 for (const msg of messagesList) {
-                    if (!previousMessageIds.has(msg.messageId) && msg.userId !== currentUser.id) {
-                        hasNewMessageFromOthers = true;
-                        break;
+                    if (msg && msg.messageId && !previousMessageIds.has(msg.messageId)) {
+                        const msgUserId = msg.userId || 'unknown';
+                        if (msgUserId !== currentUser.id) {
+                            hasNewMessageFromOthers = true;
+                            break;
+                        }
                     }
                 }
 
@@ -287,13 +290,19 @@
 
             try {
                 messagesArea.innerHTML = messagesList.map(msg => {
-                // Skip messages with missing required data
-                if (!msg || !msg.messageId || !msg.text || !msg.userId) {
+                // Skip messages with missing critical data
+                if (!msg || !msg.messageId || !msg.text) {
                     console.warn('Skipping invalid message:', msg);
                     return '';
                 }
 
-                const isOwn = msg.userId === currentUser.id;
+                // Provide defaults for missing properties
+                const userId = msg.userId || 'unknown';
+                const username = msg.username || 'Unknown User';
+                const avatar = msg.avatar || '😀';
+                const timestamp = msg.timestamp || Date.now();
+
+                const isOwn = userId === currentUser.id;
                 const messageClass = isOwn ? 'message own' : 'message';
                 const editButton = isOwn ? `<button class="edit-msg-btn" onclick="startEditMessage('${msg.messageId}')" title="Edit message">✏️</button>` : '';
                 const deleteButton = isOwn ? `<button class="delete-msg-btn" onclick="deleteMessage('${msg.messageId}')" title="Delete message">🗑️</button>` : '';
@@ -342,9 +351,9 @@
 
                 return `
                     <div class="${messageClass}" data-message-id="${msg.messageId}">
-                        <div class="message-avatar">${msg.avatar}</div>
+                        <div class="message-avatar">${avatar}</div>
                         <div class="message-content">
-                            <div class="message-header">${msg.username}</div>
+                            <div class="message-header">${username}</div>
                             <div class="message-bubble">
                                 <span class="message-text" data-original-text="${escapeHtml(msg.text)}">${escapeHtml(msg.text)} ${editedLabel}</span>
                                 <div class="message-actions" style="display: none;">
@@ -354,7 +363,7 @@
                                 </div>
                             </div>
                             ${reactionsHtml}
-                            <div class="message-time">${formatTime(msg.timestamp)} ${readReceiptHtml}</div>
+                            <div class="message-time">${formatTime(timestamp)} ${readReceiptHtml}</div>
                         </div>
                     </div>
                 `;
