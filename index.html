@@ -28,6 +28,13 @@
                         <label for="loginUsername">Username</label>
                         <input type="text" id="loginUsername" placeholder="Enter your username" required>
                     </div>
+                    <div class="input-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="loginPassword" placeholder="Enter your password" required minlength="6">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('loginPassword', this)">👁️</button>
+                        </div>
+                    </div>
                     <button type="submit" class="btn-primary" id="loginBtn">Login</button>
                 </form>
             </div>
@@ -39,6 +46,20 @@
                     <div class="input-group">
                         <label for="signupUsername">Username</label>
                         <input type="text" id="signupUsername" placeholder="Choose a username" required minlength="3">
+                    </div>
+                    <div class="input-group">
+                        <label for="signupPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signupPassword" placeholder="At least 6 characters" required minlength="6">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('signupPassword', this)">👁️</button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="confirmPassword" placeholder="Re-enter password" required minlength="6">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)">👁️</button>
+                        </div>
                     </div>
                     <div class="input-group">
                         <label for="signupAvatar">Choose Avatar</label>
@@ -105,6 +126,28 @@
             }
         }
 
+        // Simple password hashing function
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // Avatar selection
             const avatarOptions = document.querySelectorAll('.avatar-option');
@@ -123,51 +166,67 @@
             const loginBtn = document.getElementById('loginBtn');
             const loginMessage = document.getElementById('loginMessage');
 
-            loginFormElement.addEventListener('submit', function(e) {
+            loginFormElement.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
                 loginMessage.style.display = 'block';
-                loginMessage.textContent = '✓ Checking username...';
+                loginMessage.textContent = '✓ Checking credentials...';
                 loginBtn.disabled = true;
 
                 const username = document.getElementById('loginUsername').value.trim();
+                const password = document.getElementById('loginPassword').value;
 
-                if (!username) {
-                    loginMessage.textContent = '⚠ Please enter a username';
+                if (!username || !password) {
+                    loginMessage.textContent = '⚠ Please enter username and password';
                     loginMessage.style.background = '#ff9800';
                     loginBtn.disabled = false;
                     return;
                 }
 
-                database.ref('users').once('value')
-                    .then((snapshot) => {
-                        const users = snapshot.val() || {};
-                        let userFound = null;
+                try {
+                    const hashedPassword = await hashPassword(password);
 
-                        for (let userId in users) {
-                            if (users[userId].username.toLowerCase() === username.toLowerCase()) {
-                                userFound = users[userId];
-                                break;
-                            }
-                        }
+                    const snapshot = await database.ref('users').once('value');
+                    const users = snapshot.val() || {};
+                    let userFound = null;
 
-                        if (userFound) {
-                            loginMessage.textContent = '✓ User found! Redirecting...';
-                            localStorage.setItem('chatapp_user', JSON.stringify(userFound));
-                            setTimeout(() => {
-                                window.location.href = 'chat.html';
-                            }, 500);
-                        } else {
-                            loginMessage.textContent = '❌ Username not found. Please create an account!';
-                            loginMessage.style.background = '#f44336';
-                            loginBtn.disabled = false;
+                    for (let userId in users) {
+                        if (users[userId].username.toLowerCase() === username.toLowerCase()) {
+                            userFound = users[userId];
+                            break;
                         }
-                    })
-                    .catch(error => {
-                        loginMessage.textContent = '❌ Error: ' + error.message;
+                    }
+
+                    if (!userFound) {
+                        loginMessage.textContent = '❌ Username not found. Please create an account!';
                         loginMessage.style.background = '#f44336';
                         loginBtn.disabled = false;
-                    });
+                        return;
+                    }
+
+                    if (userFound.password !== hashedPassword) {
+                        loginMessage.textContent = '❌ Incorrect password!';
+                        loginMessage.style.background = '#f44336';
+                        loginBtn.disabled = false;
+                        return;
+                    }
+
+                    loginMessage.textContent = '✓ Login successful! Redirecting...';
+                    // Don't store password in localStorage
+                    const userDataForStorage = {
+                        id: userFound.id,
+                        username: userFound.username,
+                        avatar: userFound.avatar
+                    };
+                    localStorage.setItem('chatapp_user', JSON.stringify(userDataForStorage));
+                    setTimeout(() => {
+                        window.location.href = 'chat.html';
+                    }, 500);
+                } catch (error) {
+                    loginMessage.textContent = '❌ Error: ' + error.message;
+                    loginMessage.style.background = '#f44336';
+                    loginBtn.disabled = false;
+                }
             });
 
             // Signup form
@@ -175,7 +234,7 @@
             const signupBtn = document.getElementById('signupBtn');
             const signupMessage = document.getElementById('signupMessage');
 
-            signupFormElement.addEventListener('submit', function(e) {
+            signupFormElement.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
                 signupMessage.style.display = 'block';
@@ -183,6 +242,8 @@
                 signupBtn.disabled = true;
 
                 const username = document.getElementById('signupUsername').value.trim();
+                const password = document.getElementById('signupPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
                 const avatar = document.getElementById('selectedAvatar').value;
 
                 if (!username || username.length < 3) {
@@ -192,51 +253,71 @@
                     return;
                 }
 
+                if (password.length < 6) {
+                    signupMessage.textContent = '⚠ Password must be at least 6 characters';
+                    signupMessage.style.background = '#ff9800';
+                    signupBtn.disabled = false;
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    signupMessage.textContent = '⚠ Passwords do not match!';
+                    signupMessage.style.background = '#ff9800';
+                    signupBtn.disabled = false;
+                    return;
+                }
+
                 signupMessage.textContent = '⏳ Checking if username is available...';
 
-                database.ref('users').once('value')
-                    .then((snapshot) => {
-                        const users = snapshot.val() || {};
-                        let usernameExists = false;
+                try {
+                    const snapshot = await database.ref('users').once('value');
+                    const users = snapshot.val() || {};
+                    let usernameExists = false;
 
-                        for (let userId in users) {
-                            if (users[userId].username.toLowerCase() === username.toLowerCase()) {
-                                usernameExists = true;
-                                break;
-                            }
+                    for (let userId in users) {
+                        if (users[userId].username.toLowerCase() === username.toLowerCase()) {
+                            usernameExists = true;
+                            break;
                         }
+                    }
 
-                        if (usernameExists) {
-                            signupMessage.textContent = '❌ Username already taken!';
-                            signupMessage.style.background = '#f44336';
-                            signupBtn.disabled = false;
-                            return;
-                        }
-
-                        signupMessage.textContent = '⏳ Creating your account...';
-
-                        const newUserRef = database.ref('users').push();
-                        const userData = {
-                            id: newUserRef.key,
-                            username: username,
-                            avatar: avatar,
-                            joinedAt: Date.now()
-                        };
-
-                        return newUserRef.set(userData)
-                            .then(() => {
-                                signupMessage.textContent = '✅ Account created! Redirecting...';
-                                localStorage.setItem('chatapp_user', JSON.stringify(userData));
-                                setTimeout(() => {
-                                    window.location.href = 'chat.html';
-                                }, 1000);
-                            });
-                    })
-                    .catch(error => {
-                        signupMessage.textContent = '❌ Error: ' + error.message;
+                    if (usernameExists) {
+                        signupMessage.textContent = '❌ Username already taken!';
                         signupMessage.style.background = '#f44336';
                         signupBtn.disabled = false;
-                    });
+                        return;
+                    }
+
+                    signupMessage.textContent = '⏳ Creating your account...';
+
+                    const hashedPassword = await hashPassword(password);
+                    const newUserRef = database.ref('users').push();
+                    const userData = {
+                        id: newUserRef.key,
+                        username: username,
+                        password: hashedPassword,
+                        avatar: avatar,
+                        joinedAt: Date.now()
+                    };
+
+                    await newUserRef.set(userData);
+
+                    signupMessage.textContent = '✅ Account created! Redirecting...';
+                    // Don't store password in localStorage
+                    const userDataForStorage = {
+                        id: userData.id,
+                        username: userData.username,
+                        avatar: userData.avatar
+                    };
+                    localStorage.setItem('chatapp_user', JSON.stringify(userDataForStorage));
+                    setTimeout(() => {
+                        window.location.href = 'chat.html';
+                    }, 1000);
+                } catch (error) {
+                    signupMessage.textContent = '❌ Error: ' + error.message;
+                    signupMessage.style.background = '#f44336';
+                    signupBtn.disabled = false;
+                }
             });
         });
     </script>
