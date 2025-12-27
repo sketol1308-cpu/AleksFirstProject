@@ -249,6 +249,7 @@
         }
 
         function displayMessages(messagesList, messagesArea) {
+            console.log('displayMessages called with', messagesList.length, 'messages');
             messagesList = messagesList.sort((a, b) => a.timestamp - b.timestamp);
 
             if (messagesList.length === 0) {
@@ -289,6 +290,7 @@
             }
 
             try {
+                console.log('Rendering', messagesList.length, 'messages...');
                 messagesArea.innerHTML = messagesList.map(msg => {
                 // Skip messages with missing critical data
                 if (!msg || !msg.messageId || !msg.text) {
@@ -367,8 +369,9 @@
                         </div>
                     </div>
                 `;
-                }).join('');
+                }).filter(html => html !== '').join('');
 
+                console.log('Messages rendered successfully');
                 messagesArea.scrollTop = messagesArea.scrollHeight;
 
                 // Add context menu (right-click) listeners
@@ -429,7 +432,8 @@
                 setupReadReceiptObserver();
             } catch (error) {
                 console.error('Error in message display:', error);
-                messagesArea.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Error loading messages. Please refresh the page.</p></div>';
+                console.error('Error details:', error.message, error.stack);
+                messagesArea.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Error loading messages. Check console for details.</p></div>';
             }
         }
 
