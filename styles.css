@@ -423,26 +423,95 @@ body {
     border-bottom-left-radius: 4px;
 }
 
-.delete-msg-btn {
+.message-text {
+    flex: 1;
+    word-break: break-word;
+}
+
+.message-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.edit-msg-btn, .delete-msg-btn {
     background: rgba(255, 255, 255, 0.2);
     border: none;
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 15px;
     cursor: pointer;
     padding: 4px 8px;
     transition: all 0.2s;
     opacity: 0.7;
     flex-shrink: 0;
-    margin-left: auto;
 }
 
-.delete-msg-btn:hover {
+.edit-msg-btn:hover, .delete-msg-btn:hover {
     background: rgba(255, 255, 255, 0.3);
     opacity: 1;
     transform: scale(1.1);
 }
 
-.delete-msg-btn:active {
+.edit-msg-btn:active, .delete-msg-btn:active {
+    transform: scale(0.95);
+}
+
+.edited-label {
+    font-size: 11px;
+    opacity: 0.7;
+    font-style: italic;
+    margin-left: 6px;
+}
+
+/* Edit mode styles */
+.edit-message-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+}
+
+.edit-message-input:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.edit-message-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.save-edit-btn, .cancel-edit-btn {
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 6px 10px;
+    transition: all 0.2s;
+    color: white;
+    min-width: 36px;
+}
+
+.save-edit-btn:hover {
+    background: rgba(76, 175, 80, 0.8);
+    transform: scale(1.1);
+}
+
+.cancel-edit-btn:hover {
+    background: rgba(244, 67, 54, 0.8);
+    transform: scale(1.1);
+}
+
+.save-edit-btn:active, .cancel-edit-btn:active {
     transform: scale(0.95);
 }
 
@@ -843,11 +912,27 @@ body {
         line-height: 1.5;
     }
 
-    .delete-msg-btn {
+    .edit-msg-btn, .delete-msg-btn {
         font-size: 18px;
         padding: 6px 10px;
         min-width: 40px;
         min-height: 40px;
+    }
+
+    .edit-message-input {
+        padding: 10px 14px;
+        font-size: 16px;
+    }
+
+    .save-edit-btn, .cancel-edit-btn {
+        font-size: 20px;
+        padding: 8px 12px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .edited-label {
+        font-size: 12px;
     }
 
     .message-time {

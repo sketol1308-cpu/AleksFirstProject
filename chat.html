@@ -216,7 +216,9 @@
             messagesArea.innerHTML = messagesList.map(msg => {
                 const isOwn = msg.userId === currentUser.id;
                 const messageClass = isOwn ? 'message own' : 'message';
+                const editButton = isOwn ? `<button class="edit-msg-btn" onclick="startEditMessage('${msg.messageId}')" title="Edit message">✏️</button>` : '';
                 const deleteButton = isOwn ? `<button class="delete-msg-btn" onclick="deleteMessage('${msg.messageId}')" title="Delete message">🗑️</button>` : '';
+                const editedLabel = msg.edited ? '<span class="edited-label">(edited)</span>' : '';
 
                 return `
                     <div class="${messageClass}" data-message-id="${msg.messageId}">
@@ -224,8 +226,11 @@
                         <div class="message-content">
                             <div class="message-header">${msg.username}</div>
                             <div class="message-bubble">
-                                ${escapeHtml(msg.text)}
-                                ${deleteButton}
+                                <span class="message-text" data-original-text="${escapeHtml(msg.text)}">${escapeHtml(msg.text)} ${editedLabel}</span>
+                                <div class="message-actions">
+                                    ${editButton}
+                                    ${deleteButton}
+                                </div>
                             </div>
                             <div class="message-time">${formatTime(msg.timestamp)}</div>
                         </div>
@@ -298,6 +303,79 @@
                 .catch(error => {
                     alert('Error deleting message: ' + error.message);
                 });
+        }
+
+        function startEditMessage(messageId) {
+            // Find the message element
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (!messageElement) return;
+
+            const messageBubble = messageElement.querySelector('.message-bubble');
+            const messageTextSpan = messageElement.querySelector('.message-text');
+            const originalText = messageTextSpan.getAttribute('data-original-text');
+
+            // Replace message content with edit input
+            messageBubble.innerHTML = `
+                <input type="text" class="edit-message-input" value="${originalText}" maxlength="500" />
+                <div class="edit-message-actions">
+                    <button class="save-edit-btn" onclick="saveEditMessage('${messageId}')" title="Save">✓</button>
+                    <button class="cancel-edit-btn" onclick="cancelEditMessage('${messageId}')" title="Cancel">✕</button>
+                </div>
+            `;
+
+            // Focus the input
+            const input = messageBubble.querySelector('.edit-message-input');
+            input.focus();
+            input.select();
+
+            // Allow saving with Enter key
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveEditMessage(messageId);
+                } else if (e.key === 'Escape') {
+                    cancelEditMessage(messageId);
+                }
+            });
+        }
+
+        function saveEditMessage(messageId) {
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (!messageElement) return;
+
+            const input = messageElement.querySelector('.edit-message-input');
+            const newText = input.value.trim();
+
+            if (!newText) {
+                alert('Message cannot be empty!');
+                return;
+            }
+
+            let messagePath;
+            if (chatMode === 'public') {
+                messagePath = 'messages/' + messageId;
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                messagePath = 'privateMessages/' + chatId + '/' + messageId;
+            } else {
+                return;
+            }
+
+            database.ref(messagePath).update({
+                text: newText,
+                edited: true,
+                editedAt: Date.now()
+            })
+            .then(() => {
+                console.log('Message edited successfully');
+            })
+            .catch(error => {
+                alert('Error editing message: ' + error.message);
+            });
+        }
+
+        function cancelEditMessage(messageId) {
+            // Just trigger a re-render by doing nothing - Firebase listener will restore original
+            console.log('Edit cancelled');
         }
 
         function startPrivateChat(userId, user) {
