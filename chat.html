@@ -376,7 +376,6 @@
                 }).filter(html => html !== '').join('');
 
                 console.log('Messages rendered successfully');
-                messagesArea.scrollTop = messagesArea.scrollHeight;
 
                 // Add context menu (right-click) listeners
                 document.querySelectorAll('.message').forEach(messageEl => {
@@ -419,15 +418,6 @@
                 messageEl.addEventListener('touchmove', () => {
                     clearTimeout(pressTimer);
                 });
-            });
-
-            // Hide actions when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.message') && !e.target.closest('.message-actions')) {
-                    document.querySelectorAll('.message-actions').forEach(actions => {
-                        actions.style.display = 'none';
-                    });
-                }
             });
 
                 messagesArea.scrollTop = messagesArea.scrollHeight;
@@ -498,6 +488,15 @@
         }
 
         updateMessagesListener();
+
+        // Hide message actions when clicking outside (add once globally)
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.message') && !e.target.closest('.message-actions')) {
+                document.querySelectorAll('.message-actions').forEach(actions => {
+                    actions.style.display = 'none';
+                });
+            }
+        });
 
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
