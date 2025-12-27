@@ -178,13 +178,21 @@
             if (chatMode === 'public') {
                 messagesListener = database.ref('messages').on('value', (snapshot) => {
                     const messages = snapshot.val() || {};
-                    displayMessages(Object.values(messages), messagesArea);
+                    const messagesWithIds = Object.keys(messages).map(id => ({
+                        ...messages[id],
+                        messageId: id
+                    }));
+                    displayMessages(messagesWithIds, messagesArea);
                 });
             } else if (chatMode === 'private' && selectedUser) {
                 const chatId = getChatId(currentUser.id, selectedUser.id);
                 messagesListener = database.ref('privateMessages/' + chatId).on('value', (snapshot) => {
                     const messages = snapshot.val() || {};
-                    displayMessages(Object.values(messages), messagesArea);
+                    const messagesWithIds = Object.keys(messages).map(id => ({
+                        ...messages[id],
+                        messageId: id
+                    }));
+                    displayMessages(messagesWithIds, messagesArea);
                 });
             }
         }
@@ -208,13 +216,17 @@
             messagesArea.innerHTML = messagesList.map(msg => {
                 const isOwn = msg.userId === currentUser.id;
                 const messageClass = isOwn ? 'message own' : 'message';
+                const deleteButton = isOwn ? `<button class="delete-msg-btn" onclick="deleteMessage('${msg.messageId}')" title="Delete message">🗑️</button>` : '';
 
                 return `
-                    <div class="${messageClass}">
+                    <div class="${messageClass}" data-message-id="${msg.messageId}">
                         <div class="message-avatar">${msg.avatar}</div>
                         <div class="message-content">
                             <div class="message-header">${msg.username}</div>
-                            <div class="message-bubble">${escapeHtml(msg.text)}</div>
+                            <div class="message-bubble">
+                                ${escapeHtml(msg.text)}
+                                ${deleteButton}
+                            </div>
                             <div class="message-time">${formatTime(msg.timestamp)}</div>
                         </div>
                     </div>
@@ -261,6 +273,30 @@
                 })
                 .catch(error => {
                     alert('Error sending message: ' + error.message);
+                });
+        }
+
+        function deleteMessage(messageId) {
+            if (!confirm('Are you sure you want to delete this message?')) {
+                return;
+            }
+
+            let messagePath;
+            if (chatMode === 'public') {
+                messagePath = 'messages/' + messageId;
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                messagePath = 'privateMessages/' + chatId + '/' + messageId;
+            } else {
+                return;
+            }
+
+            database.ref(messagePath).remove()
+                .then(() => {
+                    console.log('Message deleted successfully');
+                })
+                .catch(error => {
+                    alert('Error deleting message: ' + error.message);
                 });
         }
 

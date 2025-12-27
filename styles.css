@@ -405,6 +405,10 @@ body {
     border-radius: 18px;
     word-wrap: break-word;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .message.own .message-bubble {
@@ -417,6 +421,29 @@ body {
     background: white;
     color: #333;
     border-bottom-left-radius: 4px;
+}
+
+.delete-msg-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: all 0.2s;
+    opacity: 0.7;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.delete-msg-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.delete-msg-btn:active {
+    transform: scale(0.95);
 }
 
 .message-time {
@@ -814,6 +841,13 @@ body {
         padding: 14px 16px;
         font-size: 16px;
         line-height: 1.5;
+    }
+
+    .delete-msg-btn {
+        font-size: 18px;
+        padding: 6px 10px;
+        min-width: 40px;
+        min-height: 40px;
     }
 
     .message-time {
