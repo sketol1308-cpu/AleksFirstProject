@@ -18,6 +18,7 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button class="call-btn" id="callBtn" onclick="startCall()" style="display: none;" title="Start Call">📞</button>
                 <button class="notification-toggle-btn" id="notificationIcon" onclick="toggleNotifications()" title="Notifications ON">🔔</button>
                 <button class="settings-btn" onclick="openProfileSettings()" title="Profile Settings">⚙️</button>
                 <button class="logout-btn" onclick="logout()">Logout</button>
@@ -182,6 +183,53 @@
                     <button class="gift-close-btn" onclick="toggleGiftPicker()">✕</button>
                 </div>
                 <div class="gift-grid" id="giftGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call Modal -->
+    <div class="call-modal" id="callModal" style="display: none;">
+        <div class="call-content">
+            <div class="call-avatar" id="callAvatar">😀</div>
+            <h2 class="call-username" id="callUsername">Username</h2>
+            <p class="call-status" id="callStatus">Calling...</p>
+
+            <div class="call-timer" id="callTimer" style="display: none;">00:00</div>
+
+            <div class="call-controls">
+                <button class="call-control-btn mute-btn" id="muteBtn" onclick="toggleMute()" style="display: none;" title="Mute">
+                    <span id="muteIcon">🎤</span>
+                </button>
+                <button class="call-control-btn video-btn" id="videoBtn" onclick="toggleVideo()" style="display: none;" title="Toggle Video">
+                    <span id="videoIcon">📹</span>
+                </button>
+                <button class="call-control-btn end-btn" id="endBtn" onclick="endCall()">
+                    📞
+                </button>
+            </div>
+
+            <!-- Video elements -->
+            <div class="video-container" id="videoContainer" style="display: none;">
+                <video id="localVideo" autoplay muted playsinline></video>
+                <video id="remoteVideo" autoplay playsinline></video>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incoming Call Modal -->
+    <div class="incoming-call-modal" id="incomingCallModal" style="display: none;">
+        <div class="incoming-call-content">
+            <div class="call-avatar" id="incomingCallAvatar">😀</div>
+            <h2 class="call-username" id="incomingCallUsername">Username</h2>
+            <p class="call-status">Incoming Call...</p>
+
+            <div class="incoming-call-actions">
+                <button class="accept-call-btn" onclick="acceptCall()">
+                    📞 Accept
+                </button>
+                <button class="reject-call-btn" onclick="rejectCall()">
+                    ✕ Reject
+                </button>
             </div>
         </div>
     </div>
@@ -1174,6 +1222,7 @@
 
             updateMessagesListener();
             updateTypingListener();
+            updateCallButtonVisibility();
 
             console.log('Private chat started successfully');
         }
@@ -1187,6 +1236,7 @@
 
             updateMessagesListener();
             updateTypingListener();
+            updateCallButtonVisibility();
         }
 
         // Typing Indicator Logic
@@ -1927,6 +1977,329 @@
                 console.error('Error sending gift:', error);
                 alert('Error sending gift: ' + error.message);
             }
+        }
+
+        // Call functionality with WebRTC
+        let peerConnection = null;
+        let localStream = null;
+        let remoteStream = null;
+        let isMuted = false;
+        let isVideoOn = false;
+        let callTimer = null;
+        let callStartTime = null;
+        let currentCallId = null;
+        let isCallInitiator = false;
+
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        // Show call button only in private chat
+        function updateCallButtonVisibility() {
+            const callBtn = document.getElementById('callBtn');
+            if (chatMode === 'private' && selectedUser) {
+                callBtn.style.display = 'block';
+            } else {
+                callBtn.style.display = 'none';
+            }
+        }
+
+        // Start a call
+        async function startCall() {
+            if (!selectedUser) {
+                alert('Please select a user to call');
+                return;
+            }
+
+            try {
+                isCallInitiator = true;
+                currentCallId = `call_${currentUser.id}_${selectedUser.id}_${Date.now()}`;
+
+                // Show call modal
+                document.getElementById('callModal').style.display = 'flex';
+                document.getElementById('callAvatar').textContent = selectedUser.avatar;
+                document.getElementById('callUsername').textContent = selectedUser.username;
+                document.getElementById('callStatus').textContent = 'Calling...';
+
+                // Get local audio stream
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+                // Create peer connection
+                peerConnection = new RTCPeerConnection(configuration);
+
+                // Add local stream to peer connection
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Handle incoming tracks
+                peerConnection.ontrack = (event) => {
+                    if (!remoteStream) {
+                        remoteStream = new MediaStream();
+                        const audioElement = new Audio();
+                        audioElement.srcObject = remoteStream;
+                        audioElement.play();
+                    }
+                    event.streams[0].getTracks().forEach(track => {
+                        remoteStream.addTrack(track);
+                    });
+                };
+
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        database.ref(`calls/${currentCallId}/candidates/${currentUser.id}`).push({
+                            candidate: event.candidate.toJSON()
+                        });
+                    }
+                };
+
+                // Create and send offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Save call to Firebase
+                await database.ref(`calls/${currentCallId}`).set({
+                    callerId: currentUser.id,
+                    callerName: currentUser.username,
+                    callerAvatar: currentUser.avatar,
+                    receiverId: selectedUser.id,
+                    offer: {
+                        type: offer.type,
+                        sdp: offer.sdp
+                    },
+                    status: 'ringing',
+                    timestamp: Date.now()
+                });
+
+                // Listen for answer
+                database.ref(`calls/${currentCallId}/answer`).on('value', async (snapshot) => {
+                    const answer = snapshot.val();
+                    if (answer && peerConnection.signalingState === 'have-local-offer') {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                    }
+                });
+
+                // Listen for remote ICE candidates
+                database.ref(`calls/${currentCallId}/candidates/${selectedUser.id}`).on('child_added', async (snapshot) => {
+                    const candidate = snapshot.val().candidate;
+                    if (peerConnection) {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    }
+                });
+
+                // Listen for call status
+                database.ref(`calls/${currentCallId}/status`).on('value', (snapshot) => {
+                    const status = snapshot.val();
+                    if (status === 'accepted') {
+                        startCallTimer();
+                        document.getElementById('callStatus').textContent = 'Connected';
+                        document.getElementById('muteBtn').style.display = 'block';
+                    } else if (status === 'rejected' || status === 'ended') {
+                        endCall();
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error starting call:', error);
+                alert('Error starting call: ' + error.message);
+                endCall();
+            }
+        }
+
+        // Listen for incoming calls
+        database.ref('calls').on('child_added', async (snapshot) => {
+            const call = snapshot.val();
+            const callId = snapshot.key;
+
+            if (call.receiverId === currentUser.id && call.status === 'ringing') {
+                currentCallId = callId;
+                isCallInitiator = false;
+
+                // Show incoming call modal
+                document.getElementById('incomingCallModal').style.display = 'flex';
+                document.getElementById('incomingCallAvatar').textContent = call.callerAvatar;
+                document.getElementById('incomingCallUsername').textContent = call.callerName;
+
+                // Play ringtone
+                playNotificationSound();
+            }
+        });
+
+        // Accept call
+        async function acceptCall() {
+            try {
+                document.getElementById('incomingCallModal').style.display = 'none';
+                document.getElementById('callModal').style.display = 'flex';
+
+                const callSnapshot = await database.ref(`calls/${currentCallId}`).once('value');
+                const call = callSnapshot.val();
+
+                document.getElementById('callAvatar').textContent = call.callerAvatar;
+                document.getElementById('callUsername').textContent = call.callerName;
+                document.getElementById('callStatus').textContent = 'Connecting...';
+
+                // Get local audio stream
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+                // Create peer connection
+                peerConnection = new RTCPeerConnection(configuration);
+
+                // Add local stream to peer connection
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Handle incoming tracks
+                peerConnection.ontrack = (event) => {
+                    if (!remoteStream) {
+                        remoteStream = new MediaStream();
+                        const audioElement = new Audio();
+                        audioElement.srcObject = remoteStream;
+                        audioElement.play();
+                    }
+                    event.streams[0].getTracks().forEach(track => {
+                        remoteStream.addTrack(track);
+                    });
+                };
+
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        database.ref(`calls/${currentCallId}/candidates/${currentUser.id}`).push({
+                            candidate: event.candidate.toJSON()
+                        });
+                    }
+                };
+
+                // Set remote description
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(call.offer));
+
+                // Create and send answer
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                await database.ref(`calls/${currentCallId}/answer`).set({
+                    type: answer.type,
+                    sdp: answer.sdp
+                });
+
+                // Update call status
+                await database.ref(`calls/${currentCallId}/status`).set('accepted');
+
+                // Listen for remote ICE candidates
+                database.ref(`calls/${currentCallId}/candidates/${call.callerId}`).on('child_added', async (snapshot) => {
+                    const candidate = snapshot.val().candidate;
+                    if (peerConnection) {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    }
+                });
+
+                // Listen for call end
+                database.ref(`calls/${currentCallId}/status`).on('value', (snapshot) => {
+                    const status = snapshot.val();
+                    if (status === 'ended') {
+                        endCall();
+                    }
+                });
+
+                startCallTimer();
+                document.getElementById('callStatus').textContent = 'Connected';
+                document.getElementById('muteBtn').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error accepting call:', error);
+                alert('Error accepting call: ' + error.message);
+                endCall();
+            }
+        }
+
+        // Reject call
+        async function rejectCall() {
+            document.getElementById('incomingCallModal').style.display = 'none';
+            if (currentCallId) {
+                await database.ref(`calls/${currentCallId}/status`).set('rejected');
+                currentCallId = null;
+            }
+        }
+
+        // End call
+        async function endCall() {
+            // Stop call timer
+            if (callTimer) {
+                clearInterval(callTimer);
+                callTimer = null;
+            }
+
+            // Close peer connection
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            // Stop local stream
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            // Clear remote stream
+            if (remoteStream) {
+                remoteStream = null;
+            }
+
+            // Update call status in Firebase
+            if (currentCallId) {
+                await database.ref(`calls/${currentCallId}/status`).set('ended');
+                database.ref(`calls/${currentCallId}`).off();
+                currentCallId = null;
+            }
+
+            // Hide modals
+            document.getElementById('callModal').style.display = 'none';
+            document.getElementById('incomingCallModal').style.display = 'none';
+
+            // Reset UI
+            document.getElementById('callTimer').style.display = 'none';
+            document.getElementById('callTimer').textContent = '00:00';
+            document.getElementById('muteBtn').style.display = 'none';
+            document.getElementById('videoBtn').style.display = 'none';
+            isMuted = false;
+            isVideoOn = false;
+        }
+
+        // Toggle mute
+        function toggleMute() {
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    isMuted = !isMuted;
+                    audioTrack.enabled = !isMuted;
+                    document.getElementById('muteIcon').textContent = isMuted ? '🔇' : '🎤';
+                }
+            }
+        }
+
+        // Toggle video (placeholder - can be extended)
+        function toggleVideo() {
+            alert('Video calling coming soon!');
+        }
+
+        // Start call timer
+        function startCallTimer() {
+            callStartTime = Date.now();
+            document.getElementById('callTimer').style.display = 'block';
+
+            callTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('callTimer').textContent =
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
         }
 
         // Image modal viewer
