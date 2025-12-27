@@ -239,6 +239,28 @@
                     reactionsHtml += '</div>';
                 }
 
+                // Build read receipt display
+                let readReceiptHtml = '';
+                if (isOwn && msg.readBy) {
+                    const readByCount = Object.keys(msg.readBy).filter(id => id !== currentUser.id).length;
+                    if (chatMode === 'private' && selectedUser) {
+                        // Private chat: show checkmark if other person read it
+                        const isReadByOther = msg.readBy[selectedUser.id];
+                        if (isReadByOther) {
+                            readReceiptHtml = '<span class="read-receipt read" title="Read">✓✓</span>';
+                        } else {
+                            readReceiptHtml = '<span class="read-receipt delivered" title="Delivered">✓</span>';
+                        }
+                    } else if (chatMode === 'public') {
+                        // Public chat: show count if read by others
+                        if (readByCount > 0) {
+                            readReceiptHtml = `<span class="read-receipt read" title="Read by ${readByCount} ${readByCount === 1 ? 'person' : 'people'}">✓✓</span>`;
+                        } else {
+                            readReceiptHtml = '<span class="read-receipt delivered" title="Delivered">✓</span>';
+                        }
+                    }
+                }
+
                 return `
                     <div class="${messageClass}" data-message-id="${msg.messageId}">
                         <div class="message-avatar">${msg.avatar}</div>
@@ -253,7 +275,7 @@
                                 </div>
                             </div>
                             ${reactionsHtml}
-                            <div class="message-time">${formatTime(msg.timestamp)}</div>
+                            <div class="message-time">${formatTime(msg.timestamp)} ${readReceiptHtml}</div>
                         </div>
                     </div>
                 `;
@@ -314,6 +336,61 @@
             });
 
             messagesArea.scrollTop = messagesArea.scrollHeight;
+
+            // Setup Intersection Observer for read receipts
+            setupReadReceiptObserver();
+        }
+
+        // Read Receipt Observer
+        let readReceiptObserver = null;
+
+        function setupReadReceiptObserver() {
+            // Disconnect previous observer
+            if (readReceiptObserver) {
+                readReceiptObserver.disconnect();
+            }
+
+            // Create new observer
+            readReceiptObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const messageId = entry.target.getAttribute('data-message-id');
+                        const messageElement = entry.target;
+
+                        // Check if this is someone else's message
+                        const isOwnMessage = messageElement.classList.contains('own');
+                        if (!isOwnMessage && messageId) {
+                            markMessageAsRead(messageId);
+                        }
+                    }
+                });
+            }, {
+                root: document.getElementById('messagesArea'),
+                threshold: 0.5 // Message must be 50% visible
+            });
+
+            // Observe all message elements
+            document.querySelectorAll('.message').forEach(messageEl => {
+                readReceiptObserver.observe(messageEl);
+            });
+        }
+
+        function markMessageAsRead(messageId) {
+            let messagePath;
+            if (chatMode === 'public') {
+                messagePath = 'messages/' + messageId + '/readBy/' + currentUser.id;
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                messagePath = 'privateMessages/' + chatId + '/' + messageId + '/readBy/' + currentUser.id;
+            } else {
+                return;
+            }
+
+            // Mark as read with timestamp
+            database.ref(messagePath).set(Date.now())
+                .catch(error => {
+                    console.error('Error marking message as read:', error);
+                });
         }
 
         function getChatId(userId1, userId2) {
