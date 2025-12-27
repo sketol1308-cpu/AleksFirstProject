@@ -9,11 +9,12 @@
 <body>
     <div class="chat-container">
         <div class="chat-header">
+            <button class="back-btn" id="backBtn" onclick="backToPublicChat()" style="display: none;">← Back</button>
             <div class="user-info">
                 <div class="user-avatar" id="currentUserAvatar">😀</div>
                 <div class="user-details">
                     <h2 id="currentUsername">User</h2>
-                    <p>Online now</p>
+                    <p id="chatMode">Public Chat</p>
                 </div>
             </div>
             <button class="logout-btn" onclick="logout()">Logout</button>
@@ -82,6 +83,10 @@
         document.getElementById('currentUserAvatar').textContent = currentUser.avatar;
         document.getElementById('currentUsername').textContent = currentUser.username;
 
+        // Chat mode: 'public' or 'private'
+        let chatMode = 'public';
+        let selectedUser = null;
+
         // Mark user as online
         const onlineUserRef = database.ref('online/' + currentUser.id);
         onlineUserRef.set({
@@ -108,10 +113,12 @@
                     const user = onlineUsers[userId];
                     const userElement = document.createElement('div');
                     userElement.className = 'online-user';
+                    userElement.style.cursor = 'pointer';
                     userElement.innerHTML = `
                         <div class="online-user-avatar">${user.avatar}</div>
                         <div class="online-user-name">${user.username}</div>
                     `;
+                    userElement.onclick = () => startPrivateChat(userId, user);
                     usersList.appendChild(userElement);
                 }
             }
@@ -120,17 +127,42 @@
         });
 
         // Listen for messages
-        database.ref('messages').on('value', (snapshot) => {
-            const messages = snapshot.val() || {};
+        let messagesListener = null;
+
+        function updateMessagesListener() {
+            // Remove old listener
+            if (messagesListener) {
+                database.ref('messages').off('value', messagesListener);
+                database.ref('privateMessages').off('value', messagesListener);
+            }
+
             const messagesArea = document.getElementById('messagesArea');
 
-            const messagesList = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+            if (chatMode === 'public') {
+                messagesListener = database.ref('messages').on('value', (snapshot) => {
+                    const messages = snapshot.val() || {};
+                    displayMessages(Object.values(messages), messagesArea);
+                });
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                messagesListener = database.ref('privateMessages/' + chatId).on('value', (snapshot) => {
+                    const messages = snapshot.val() || {};
+                    displayMessages(Object.values(messages), messagesArea);
+                });
+            }
+        }
+
+        function displayMessages(messagesList, messagesArea) {
+            messagesList = messagesList.sort((a, b) => a.timestamp - b.timestamp);
 
             if (messagesList.length === 0) {
+                const emptyText = chatMode === 'private'
+                    ? `Start chatting with ${selectedUser.username}!`
+                    : 'Start chatting with others!';
                 messagesArea.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">💬</div>
-                        <p>Start chatting with others!</p>
+                        <p>${emptyText}</p>
                     </div>
                 `;
                 return;
@@ -153,7 +185,13 @@
             }).join('');
 
             messagesArea.scrollTop = messagesArea.scrollHeight;
-        });
+        }
+
+        function getChatId(userId1, userId2) {
+            return [userId1, userId2].sort().join('_');
+        }
+
+        updateMessagesListener();
 
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
@@ -169,7 +207,17 @@
                 timestamp: Date.now()
             };
 
-            database.ref('messages').push(message)
+            let messagePath;
+            if (chatMode === 'public') {
+                messagePath = 'messages';
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                messagePath = 'privateMessages/' + chatId;
+            } else {
+                return;
+            }
+
+            database.ref(messagePath).push(message)
                 .then(() => {
                     messageInput.value = '';
                     messageInput.focus();
@@ -177,6 +225,26 @@
                 .catch(error => {
                     alert('Error sending message: ' + error.message);
                 });
+        }
+
+        function startPrivateChat(userId, user) {
+            chatMode = 'private';
+            selectedUser = { id: userId, ...user };
+
+            document.getElementById('chatMode').textContent = `Chatting with ${user.username}`;
+            document.getElementById('backBtn').style.display = 'block';
+
+            updateMessagesListener();
+        }
+
+        function backToPublicChat() {
+            chatMode = 'public';
+            selectedUser = null;
+
+            document.getElementById('chatMode').textContent = 'Public Chat';
+            document.getElementById('backBtn').style.display = 'none';
+
+            updateMessagesListener();
         }
 
         document.getElementById('messageInput').addEventListener('keypress', (e) => {

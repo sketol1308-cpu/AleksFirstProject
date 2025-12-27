@@ -212,6 +212,22 @@ body {
     opacity: 0.9;
 }
 
+.back-btn {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid white;
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 16px;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
 .logout-btn {
     padding: 10px 20px;
     background: rgba(255, 255, 255, 0.2);
@@ -253,6 +269,18 @@ body {
     padding: 8px 15px;
     border-radius: 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+}
+
+.online-user:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+.online-user:hover .online-user-name {
+    color: white;
 }
 
 .online-user-avatar {
