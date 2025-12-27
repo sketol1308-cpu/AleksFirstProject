@@ -270,6 +270,12 @@ body {
     border-radius: 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transition: all 0.3s;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(102, 126, 234, 0.3);
+    min-height: 44px;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .online-user:hover {
@@ -279,7 +285,14 @@ body {
     box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
 }
 
-.online-user:hover .online-user-name {
+.online-user:active {
+    background: #667eea;
+    color: white;
+    transform: scale(0.98);
+}
+
+.online-user:hover .online-user-name,
+.online-user:active .online-user-name {
     color: white;
 }
 

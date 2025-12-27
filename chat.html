@@ -114,11 +114,23 @@
                     const userElement = document.createElement('div');
                     userElement.className = 'online-user';
                     userElement.style.cursor = 'pointer';
+                    userElement.setAttribute('data-user-id', userId);
                     userElement.innerHTML = `
                         <div class="online-user-avatar">${user.avatar}</div>
                         <div class="online-user-name">${user.username}</div>
                     `;
-                    userElement.onclick = () => startPrivateChat(userId, user);
+
+                    // Add both click and touch events for better mobile support
+                    userElement.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        startPrivateChat(userId, user);
+                    });
+
+                    userElement.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        startPrivateChat(userId, user);
+                    });
+
                     usersList.appendChild(userElement);
                 }
             }
