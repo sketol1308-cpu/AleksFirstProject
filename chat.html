@@ -33,7 +33,20 @@
         </div>
 
         <div class="input-area">
+            <div class="emoji-picker" id="emojiPicker" style="display: none;">
+                <div class="emoji-header">
+                    <span class="emoji-category active" data-category="smileys">😀</span>
+                    <span class="emoji-category" data-category="gestures">👋</span>
+                    <span class="emoji-category" data-category="hearts">❤️</span>
+                    <span class="emoji-category" data-category="animals">🐶</span>
+                    <span class="emoji-category" data-category="food">🍕</span>
+                    <span class="emoji-category" data-category="activities">⚽</span>
+                    <span class="emoji-category" data-category="objects">💡</span>
+                </div>
+                <div class="emoji-grid" id="emojiGrid"></div>
+            </div>
             <div class="input-container">
+                <button class="emoji-btn" id="emojiBtn" onclick="toggleEmojiPicker()">😊</button>
                 <input
                     type="text"
                     class="message-input"
@@ -292,6 +305,79 @@
 
             return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         }
+
+        // Emoji Picker Functionality
+        const emojiCategories = {
+            smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '😶‍🌫️', '🥴', '😵', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐'],
+            gestures: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋'],
+            hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'],
+            animals: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐂', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊️', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿️', '🦔'],
+            food: ['🍕', '🍔', '🍟', '🌭', '🍿', '🧈', '🥓', '🥚', '🍳', '🧇', '🥞', '🧈', '🍞', '🥐', '🥨', '🥯', '🥖', '🧀', '🥗', '🥙', '🥪', '🌮', '🌯', '🫔', '🥫', '🍖', '🍗', '🥩', '🍠', '🥟', '🥠', '🥡', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🦪', '🍣', '🍤', '🍥', '🥮', '🍢', '🧆', '🥘', '🍲', '🫕', '🍝', '🥧', '🍰', '🎂', '🧁', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '☕', '🍵', '🧃', '🥤', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧉', '🍾', '🧊', '🥄', '🍴', '🍽️', '🥣', '🥡', '🥢', '🧂'],
+            activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️', '🤼', '🤸', '🤾', '🏌️', '🏇', '🧘', '🏊', '🤽', '🚣', '🧗', '🚵', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🎗️', '🎫', '🎟️', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩'],
+            objects: ['💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️', '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🪦', '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🔬', '🕳️', '🩹', '🩺', '💊', '💉', '🩸', '🧬', '🦠', '🧫', '🧪', '🌡️', '🧹', '🪠', '🧺', '🧻', '🚽', '🚰', '🚿', '🛁', '🛀', '🧼', '🪒', '🧽', '🪣', '🧴', '🧷', '🧹', '🧺', '🧻', '🪣']
+        };
+
+        let currentCategory = 'smileys';
+
+        function loadEmojis(category) {
+            const emojiGrid = document.getElementById('emojiGrid');
+            emojiGrid.innerHTML = '';
+            const emojis = emojiCategories[category] || emojiCategories.smileys;
+
+            emojis.forEach(emoji => {
+                const emojiElement = document.createElement('span');
+                emojiElement.className = 'emoji-item';
+                emojiElement.textContent = emoji;
+                emojiElement.addEventListener('click', () => insertEmoji(emoji));
+                emojiElement.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    insertEmoji(emoji);
+                });
+                emojiGrid.appendChild(emojiElement);
+            });
+        }
+
+        function toggleEmojiPicker() {
+            const picker = document.getElementById('emojiPicker');
+            if (picker.style.display === 'none') {
+                picker.style.display = 'block';
+                loadEmojis(currentCategory);
+            } else {
+                picker.style.display = 'none';
+            }
+        }
+
+        function insertEmoji(emoji) {
+            const input = document.getElementById('messageInput');
+            const cursorPos = input.selectionStart;
+            const textBefore = input.value.substring(0, cursorPos);
+            const textAfter = input.value.substring(cursorPos);
+            input.value = textBefore + emoji + textAfter;
+            input.focus();
+            input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
+        }
+
+        // Emoji category switching
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoryButtons = document.querySelectorAll('.emoji-category');
+            categoryButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    categoryButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentCategory = this.getAttribute('data-category');
+                    loadEmojis(currentCategory);
+                });
+            });
+
+            // Close emoji picker when clicking outside
+            document.addEventListener('click', function(e) {
+                const picker = document.getElementById('emojiPicker');
+                const emojiBtn = document.getElementById('emojiBtn');
+                if (picker.style.display === 'block' && !picker.contains(e.target) && e.target !== emojiBtn) {
+                    picker.style.display = 'none';
+                }
+            });
+        });
     </script>
 </body>
 </html>
