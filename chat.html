@@ -433,6 +433,7 @@
 
         // Read Receipt Observer
         let readReceiptObserver = null;
+        let markedAsReadMessages = new Set(); // Track messages already marked as read
 
         function setupReadReceiptObserver() {
             // Disconnect previous observer
@@ -466,6 +467,11 @@
         }
 
         function markMessageAsRead(messageId) {
+            // Don't mark the same message twice
+            if (markedAsReadMessages.has(messageId)) {
+                return;
+            }
+
             let messagePath;
             if (chatMode === 'public') {
                 messagePath = 'messages/' + messageId + '/readBy/' + currentUser.id;
@@ -477,6 +483,7 @@
             }
 
             // Mark as read with timestamp
+            markedAsReadMessages.add(messageId);
             database.ref(messagePath).set(Date.now())
                 .catch(error => {
                     console.error('Error marking message as read:', error);
