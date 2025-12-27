@@ -220,6 +220,25 @@
                 const deleteButton = isOwn ? `<button class="delete-msg-btn" onclick="deleteMessage('${msg.messageId}')" title="Delete message">🗑️</button>` : '';
                 const editedLabel = msg.edited ? '<span class="edited-label">(edited)</span>' : '';
 
+                // Build reactions display
+                let reactionsHtml = '';
+                if (msg.reactions) {
+                    const reactionCounts = {};
+                    for (let userId in msg.reactions) {
+                        const emoji = msg.reactions[userId];
+                        reactionCounts[emoji] = (reactionCounts[emoji] || 0) + 1;
+                    }
+
+                    reactionsHtml = '<div class="message-reactions">';
+                    for (let emoji in reactionCounts) {
+                        const count = reactionCounts[emoji];
+                        const hasReacted = msg.reactions[currentUser.id] === emoji;
+                        const reactionClass = hasReacted ? 'reaction-badge active' : 'reaction-badge';
+                        reactionsHtml += `<span class="${reactionClass}" onclick="toggleReaction('${msg.messageId}', '${emoji}')">${emoji} ${count}</span>`;
+                    }
+                    reactionsHtml += '</div>';
+                }
+
                 return `
                     <div class="${messageClass}" data-message-id="${msg.messageId}">
                         <div class="message-avatar">${msg.avatar}</div>
@@ -227,16 +246,72 @@
                             <div class="message-header">${msg.username}</div>
                             <div class="message-bubble">
                                 <span class="message-text" data-original-text="${escapeHtml(msg.text)}">${escapeHtml(msg.text)} ${editedLabel}</span>
-                                <div class="message-actions">
+                                <div class="message-actions" style="display: none;">
+                                    <button class="react-msg-btn" onclick="showReactionPicker('${msg.messageId}')" title="Add reaction">😊</button>
                                     ${editButton}
                                     ${deleteButton}
                                 </div>
                             </div>
+                            ${reactionsHtml}
                             <div class="message-time">${formatTime(msg.timestamp)}</div>
                         </div>
                     </div>
                 `;
             }).join('');
+
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+
+            // Add context menu (right-click) listeners
+            document.querySelectorAll('.message').forEach(messageEl => {
+                messageEl.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+
+                    // Hide all other action buttons first
+                    document.querySelectorAll('.message-actions').forEach(actions => {
+                        actions.style.display = 'none';
+                    });
+
+                    // Show actions for this message
+                    const actions = messageEl.querySelector('.message-actions');
+                    if (actions) {
+                        actions.style.display = 'flex';
+                    }
+                });
+
+                // For mobile: long press to show actions
+                let pressTimer;
+                messageEl.addEventListener('touchstart', (e) => {
+                    pressTimer = setTimeout(() => {
+                        // Hide all other action buttons first
+                        document.querySelectorAll('.message-actions').forEach(actions => {
+                            actions.style.display = 'none';
+                        });
+
+                        // Show actions for this message
+                        const actions = messageEl.querySelector('.message-actions');
+                        if (actions) {
+                            actions.style.display = 'flex';
+                        }
+                    }, 500);
+                });
+
+                messageEl.addEventListener('touchend', () => {
+                    clearTimeout(pressTimer);
+                });
+
+                messageEl.addEventListener('touchmove', () => {
+                    clearTimeout(pressTimer);
+                });
+            });
+
+            // Hide actions when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.message') && !e.target.closest('.message-actions')) {
+                    document.querySelectorAll('.message-actions').forEach(actions => {
+                        actions.style.display = 'none';
+                    });
+                }
+            });
 
             messagesArea.scrollTop = messagesArea.scrollHeight;
         }
@@ -376,6 +451,86 @@
         function cancelEditMessage(messageId) {
             // Just trigger a re-render by doing nothing - Firebase listener will restore original
             console.log('Edit cancelled');
+        }
+
+        // Reaction functions
+        const quickReactions = ['❤️', '👍', '😂', '😮', '😢', '🙏', '🎉', '🔥'];
+
+        function showReactionPicker(messageId) {
+            // Hide all reaction pickers first
+            document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
+
+            const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (!messageEl) return;
+
+            const messageBubble = messageEl.querySelector('.message-bubble');
+
+            // Create reaction picker
+            const picker = document.createElement('div');
+            picker.className = 'reaction-picker';
+            picker.innerHTML = quickReactions.map(emoji =>
+                `<button class="reaction-option" onclick="addReaction('${messageId}', '${emoji}')">${emoji}</button>`
+            ).join('');
+
+            messageBubble.appendChild(picker);
+
+            // Close picker when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closePickerHandler(e) {
+                    if (!picker.contains(e.target)) {
+                        picker.remove();
+                        document.removeEventListener('click', closePickerHandler);
+                    }
+                }, { once: false });
+            }, 100);
+        }
+
+        function addReaction(messageId, emoji) {
+            let messagePath;
+            if (chatMode === 'public') {
+                messagePath = 'messages/' + messageId + '/reactions/' + currentUser.id;
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                messagePath = 'privateMessages/' + chatId + '/' + messageId + '/reactions/' + currentUser.id;
+            } else {
+                return;
+            }
+
+            database.ref(messagePath).set(emoji)
+                .then(() => {
+                    // Remove picker
+                    document.querySelectorAll('.reaction-picker').forEach(picker => picker.remove());
+                })
+                .catch(error => {
+                    alert('Error adding reaction: ' + error.message);
+                });
+        }
+
+        function toggleReaction(messageId, emoji) {
+            let messagePath;
+            if (chatMode === 'public') {
+                messagePath = 'messages/' + messageId + '/reactions/' + currentUser.id;
+            } else if (chatMode === 'private' && selectedUser) {
+                const chatId = getChatId(currentUser.id, selectedUser.id);
+                messagePath = 'privateMessages/' + chatId + '/' + messageId + '/reactions/' + currentUser.id;
+            } else {
+                return;
+            }
+
+            // Check if user already reacted with this emoji
+            database.ref(messagePath).once('value')
+                .then(snapshot => {
+                    if (snapshot.val() === emoji) {
+                        // Remove reaction
+                        return database.ref(messagePath).remove();
+                    } else {
+                        // Change to this reaction
+                        return database.ref(messagePath).set(emoji);
+                    }
+                })
+                .catch(error => {
+                    alert('Error toggling reaction: ' + error.message);
+                });
         }
 
         function startPrivateChat(userId, user) {

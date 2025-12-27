@@ -429,13 +429,13 @@ body {
 }
 
 .message-actions {
-    display: flex;
+    display: none;
     gap: 4px;
     flex-shrink: 0;
     margin-left: 8px;
 }
 
-.edit-msg-btn, .delete-msg-btn {
+.react-msg-btn, .edit-msg-btn, .delete-msg-btn {
     background: rgba(255, 255, 255, 0.2);
     border: none;
     border-radius: 6px;
@@ -447,13 +447,95 @@ body {
     flex-shrink: 0;
 }
 
-.edit-msg-btn:hover, .delete-msg-btn:hover {
+.react-msg-btn:hover, .edit-msg-btn:hover, .delete-msg-btn:hover {
     background: rgba(255, 255, 255, 0.3);
     opacity: 1;
     transform: scale(1.1);
 }
 
-.edit-msg-btn:active, .delete-msg-btn:active {
+.react-msg-btn:active, .edit-msg-btn:active, .delete-msg-btn:active {
+    transform: scale(0.95);
+}
+
+/* Reaction Picker */
+.reaction-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: white;
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    gap: 4px;
+    z-index: 100;
+    animation: slideUp 0.2s ease-out;
+    margin-bottom: 8px;
+}
+
+.reaction-option {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.reaction-option:hover {
+    background: #f0f0f0;
+    transform: scale(1.2);
+}
+
+.reaction-option:active {
+    transform: scale(1.0);
+}
+
+/* Message Reactions Display */
+.message-reactions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.reaction-badge {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.message.own .reaction-badge {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.reaction-badge:hover {
+    transform: scale(1.1);
+    border-color: #667eea;
+}
+
+.reaction-badge.active {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+.message.own .reaction-badge.active {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.reaction-badge:active {
     transform: scale(0.95);
 }
 
@@ -912,7 +994,7 @@ body {
         line-height: 1.5;
     }
 
-    .edit-msg-btn, .delete-msg-btn {
+    .react-msg-btn, .edit-msg-btn, .delete-msg-btn {
         font-size: 18px;
         padding: 6px 10px;
         min-width: 40px;
@@ -929,6 +1011,28 @@ body {
         padding: 8px 12px;
         min-width: 44px;
         min-height: 44px;
+    }
+
+    .reaction-picker {
+        padding: 10px;
+        gap: 6px;
+    }
+
+    .reaction-option {
+        font-size: 28px;
+        padding: 8px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+
+    .reaction-badge {
+        padding: 6px 12px;
+        font-size: 15px;
+        min-height: 32px;
+    }
+
+    .message-reactions {
+        gap: 8px;
     }
 
     .edited-label {
