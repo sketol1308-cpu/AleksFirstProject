@@ -482,9 +482,15 @@
                 return;
             }
 
-            // Mark as read with timestamp
-            markedAsReadMessages.add(messageId);
-            database.ref(messagePath).set(Date.now())
+            // Check if already marked as read in Firebase before updating
+            database.ref(messagePath).once('value')
+                .then(snapshot => {
+                    if (!snapshot.exists()) {
+                        // Only mark if not already marked
+                        markedAsReadMessages.add(messageId);
+                        return database.ref(messagePath).set(Date.now());
+                    }
+                })
                 .catch(error => {
                     console.error('Error marking message as read:', error);
                 });
