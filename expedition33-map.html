@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expedition 33 - Interactive Map with Locations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3a 100%);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 5px;
+            color: #ffcc00;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .toolbar {
+            background: #2a2a3a;
+            padding: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .tool-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 0 10px;
+            border-right: 1px solid #444;
+        }
+
+        .tool-group:last-child {
+            border-right: none;
+        }
+
+        button {
+            background: #3a3a5a;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #4a4a6a;
+            transform: translateY(-2px);
+        }
+
+        button.active {
+            background: #ffcc00;
+            color: #000;
+        }
+
+        input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        input[type="range"] {
+            width: 150px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #1a1a2a;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #333;
+        }
+
+        .sidebar h2 {
+            color: #ffcc00;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .location-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .location-item {
+            background: #2a2a4a;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            position: relative;
+        }
+
+        .location-item:hover {
+            background: #3a3a5a;
+            border-left-color: #ffcc00;
+            transform: translateX(5px);
+        }
+
+        .location-item.has-coords {
+            background: #2a3a4a;
+        }
+
+        .location-item.has-coords::after {
+            content: "📍";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .location-item.setting-location {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { background: #2a2a4a; }
+            50% { background: #4a4a6a; }
+        }
+
+        @keyframes flashPulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+
+        .location-item.main-region {
+            border-left-color: #ff6b6b;
+        }
+
+        .location-item.mid-game {
+            border-left-color: #4ecdc4;
+        }
+
+        .location-item.cave {
+            border-left-color: #95e1d3;
+        }
+
+        .location-item.late-game {
+            border-left-color: #ffd93d;
+        }
+
+        .location-item.draft {
+            border-left-color: #a8e6cf;
+        }
+
+        .location-category {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        .location-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: auto;
+            background: #0a0a1a;
+        }
+
+        #mapCanvas {
+            display: block;
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .size-display {
+            background: #3a3a5a;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .legend {
+            background: #2a2a4a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .legend h3 {
+            color: #ffcc00;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        .legend-text {
+            font-size: 13px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a2a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a5a;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a6a;
+        }
+
+        .marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ffcc00;
+            border: 2px solid #000;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+
+        .marker:hover {
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.8);
+        }
+
+        .marker-label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffcc00;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            transform: translate(-50%, -30px);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .marker:hover .marker-label {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>EXPEDITION 33</h1>
+            <p id="headerSubtitle">Custom Interactive Map</p>
+        </div>
+
+        <div class="toolbar">
+            <div class="tool-group">
+                <button id="drawBtn" class="active">Draw</button>
+                <button id="eraseBtn">Erase</button>
+                <button id="markerBtn">Add Marker</button>
+                <button id="addLocationBtn">Add Location</button>
+            </div>
+
+            <div class="tool-group">
+                <label>Color:</label>
+                <input type="color" id="colorPicker" value="#ff0000">
+            </div>
+
+            <div class="tool-group">
+                <label>Brush Size:</label>
+                <input type="range" id="brushSize" min="1" max="50" value="5">
+                <span class="size-display" id="sizeDisplay">5px</span>
+            </div>
+
+            <div class="tool-group">
+                <button id="clearBtn">Clear Drawing</button>
+                <button id="saveBtn">Save Image</button>
+                <button id="togglePinsBtn" class="active">Show Pins</button>
+                <button id="resetLocationsBtn">Reset Locations</button>
+            </div>
+
+            <div class="tool-group">
+                <label for="imageUpload" style="cursor: pointer; padding: 10px 20px; background: #3a3a5a; border-radius: 5px;">Upload Map</label>
+                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h2>Locations</h2>
+                <p style="font-size: 12px; color: #aaa; margin-bottom: 15px; line-height: 1.4;">
+                    💡 Click "Add Location" to create a location. Click any location to teleport. Right-click to delete.
+                </p>
+                <div class="location-list" id="locationList">
+                    <!-- Locations will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="mapCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const locations = {
+            custom: []
+        };
+
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvasContainer');
+        const drawBtn = document.getElementById('drawBtn');
+        const eraseBtn = document.getElementById('eraseBtn');
+        const markerBtn = document.getElementById('markerBtn');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const sizeDisplay = document.getElementById('sizeDisplay');
+        const clearBtn = document.getElementById('clearBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const locationList = document.getElementById('locationList');
+        const addLocationBtn = document.getElementById('addLocationBtn');
+        const togglePinsBtn = document.getElementById('togglePinsBtn');
+        const imageUpload = document.getElementById('imageUpload');
+        const resetLocationsBtn = document.getElementById('resetLocationsBtn');
+
+        let isDrawing = false;
+        let currentTool = 'draw';
+        let currentColor = '#ff0000';
+        let currentSize = 5;
+        let mapImage = new Image();
+        let userMarkers = [];
+        let locationCoords = {};
+        let settingLocationFor = null;
+        let showPins = true;
+
+        // Load saved location coordinates
+        function loadLocationCoords() {
+            const saved = localStorage.getItem('expedition33-locations');
+            if (saved) {
+                locationCoords = JSON.parse(saved);
+            }
+        }
+
+        // Save location coordinates
+        function saveLocationCoords() {
+            localStorage.setItem('expedition33-locations', JSON.stringify(locationCoords));
+        }
+
+        // Teleport to location
+        function teleportToLocation(locationName) {
+            const coords = locationCoords[locationName];
+            if (!coords) {
+                alert(`Location "${locationName}" has not been set yet. Click "Set Location" button, then click this location, then click on the map.`);
+                return;
+            }
+
+            // Smooth scroll to the location
+            const rect = canvas.getBoundingClientRect();
+            const targetX = coords.x - canvasContainer.clientWidth / 2;
+            const targetY = coords.y - canvasContainer.clientHeight / 2;
+
+            canvasContainer.scrollTo({
+                left: targetX,
+                top: targetY,
+                behavior: 'smooth'
+            });
+
+            // Flash effect
+            const flash = document.createElement('div');
+            flash.style.position = 'absolute';
+            flash.style.left = (rect.left + coords.x) + 'px';
+            flash.style.top = (rect.top + coords.y) + 'px';
+            flash.style.width = '40px';
+            flash.style.height = '40px';
+            flash.style.border = '3px solid #ffcc00';
+            flash.style.borderRadius = '50%';
+            flash.style.transform = 'translate(-50%, -50%)';
+            flash.style.pointerEvents = 'none';
+            flash.style.animation = 'flashPulse 1.5s ease-out';
+            canvasContainer.appendChild(flash);
+
+            setTimeout(() => flash.remove(), 1500);
+        }
+
+        // Populate location list
+        function populateLocations() {
+            locationList.innerHTML = '';
+
+            // Add all locations from locationCoords
+            Object.keys(locationCoords).forEach(location => {
+                const item = document.createElement('div');
+                item.className = 'location-item custom has-coords';
+                item.innerHTML = `
+                    <div class="location-category">Custom Location</div>
+                    <div class="location-name">${location}</div>
+                `;
+
+                // Click handler
+                item.addEventListener('click', () => {
+                    if (settingLocationFor) {
+                        // User is in "set location" mode
+                        settingLocationFor = location;
+                        // Remove previous setting-location class
+                        document.querySelectorAll('.location-item').forEach(i =>
+                            i.classList.remove('setting-location')
+                        );
+                        item.classList.add('setting-location');
+                    } else {
+                        // Normal mode - teleport
+                        teleportToLocation(location);
+                    }
+                });
+
+                // Right-click to delete
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (confirm(`Delete location "${location}"?`)) {
+                        delete locationCoords[location];
+                        saveLocationCoords();
+                        populateLocations();
+                        renderLocationPins();
+                    }
+                });
+
+                locationList.appendChild(item);
+            });
+
+            // If no locations, show a message
+            if (Object.keys(locationCoords).length === 0) {
+                const message = document.createElement('div');
+                message.style.padding = '20px';
+                message.style.color = '#888';
+                message.style.textAlign = 'center';
+                message.style.fontSize = '14px';
+                message.innerHTML = 'No locations yet.<br><br>Click "Add Location" to create one!';
+                locationList.appendChild(message);
+            }
+        }
+
+        loadLocationCoords();
+        populateLocations();
+
+        // Render location pins on the map
+        function renderLocationPins() {
+            // Clear existing pins
+            document.querySelectorAll('.location-pin').forEach(pin => pin.remove());
+
+            if (!showPins) return;
+
+            // Add pins for each location that has coordinates
+            Object.keys(locationCoords).forEach(locationName => {
+                const coords = locationCoords[locationName];
+                const rect = canvas.getBoundingClientRect();
+
+                const pin = document.createElement('div');
+                pin.className = 'location-pin';
+                pin.style.position = 'absolute';
+                pin.style.left = (rect.left + coords.x) + 'px';
+                pin.style.top = (rect.top + coords.y) + 'px';
+                pin.style.width = '20px';
+                pin.style.height = '20px';
+                pin.style.background = '#ff4444';
+                pin.style.border = '3px solid #fff';
+                pin.style.borderRadius = '50% 50% 50% 0';
+                pin.style.transform = 'translate(-50%, -100%) rotate(-45deg)';
+                pin.style.cursor = 'pointer';
+                pin.style.boxShadow = '0 3px 10px rgba(0,0,0,0.5)';
+                pin.style.transition = 'all 0.3s';
+                pin.style.zIndex = '100';
+
+                const label = document.createElement('div');
+                label.className = 'pin-label';
+                label.textContent = locationName;
+                label.style.position = 'absolute';
+                label.style.bottom = '100%';
+                label.style.left = '50%';
+                label.style.transform = 'translate(-50%, -10px) rotate(45deg)';
+                label.style.background = 'rgba(0, 0, 0, 0.9)';
+                label.style.color = '#ffcc00';
+                label.style.padding = '5px 10px';
+                label.style.borderRadius = '5px';
+                label.style.fontSize = '12px';
+                label.style.whiteSpace = 'nowrap';
+                label.style.pointerEvents = 'none';
+                label.style.opacity = '0';
+                label.style.transition = 'opacity 0.3s';
+
+                pin.appendChild(label);
+
+                pin.addEventListener('mouseenter', () => {
+                    pin.style.transform = 'translate(-50%, -100%) rotate(-45deg) scale(1.3)';
+                    label.style.opacity = '1';
+                });
+
+                pin.addEventListener('mouseleave', () => {
+                    pin.style.transform = 'translate(-50%, -100%) rotate(-45deg) scale(1)';
+                    label.style.opacity = '0';
+                });
+
+                pin.addEventListener('click', () => {
+                    teleportToLocation(locationName);
+                });
+
+                canvasContainer.appendChild(pin);
+            });
+        }
+
+        // Function to load an image onto the canvas
+        function loadImageToCanvas(imgSrc, isCrossOrigin = false) {
+            const img = new Image();
+            if (isCrossOrigin) {
+                img.crossOrigin = "anonymous";
+            }
+
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                mapImage = img;
+                renderLocationPins();
+            };
+
+            img.onerror = function() {
+                console.log('Image failed to load:', imgSrc);
+                if (isCrossOrigin) {
+                    // Try without crossOrigin
+                    loadImageToCanvas(imgSrc, false);
+                } else {
+                    // If this was the last attempt, create blank canvas
+                    createBlankCanvas();
+                }
+            };
+
+            img.src = imgSrc;
+        }
+
+        // Create a blank canvas with nice design
+        function createBlankCanvas() {
+            canvas.width = 2400;
+            canvas.height = 1600;
+
+            // Create a nice gradient background
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#1a2a3a');
+            gradient.addColorStop(0.5, '#2a3a4a');
+            gradient.addColorStop(1, '#3a4a5a');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 100) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 100) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Add title
+            ctx.fillStyle = 'rgba(255, 204, 0, 0.3)';
+            ctx.font = 'bold 60px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('EXPEDITION 33 - THE CONTINENT', canvas.width / 2, canvas.height / 2);
+
+            ctx.fillStyle = 'rgba(255, 204, 0, 0.2)';
+            ctx.font = 'bold 24px Arial';
+            ctx.fillText('Upload a map image using the "Upload Map" button', canvas.width / 2, canvas.height / 2 + 50);
+
+            renderLocationPins();
+        }
+
+        // Try to load map images in order of preference
+        const mapImageUrls = [
+            'https://img.gmtreks.com/BqEzNY8vG1As7ZikXpYUPbsdsUDezhbb9U_5FePOvLo1-7pU2V83TRFU9cA-5-5skr07MCQn9vFS0RybsoVuEFH8gGvk4qOkWvVFYFp5dyc=s0',
+            'https://img.gmtreks.com/gDSUB-2OQW2LLZ7FI9EkaBVsIkXQeCwlFbf_dzD2uDM28DLGO9hkT6iXjWxsBfsRQ0V3p3u0G3hpaJp1nZcfHOrOygRSr57_xr_3GU_iz6gp=s0'
+        ];
+
+        let currentImageIndex = 0;
+
+        function tryLoadNextImage() {
+            if (currentImageIndex < mapImageUrls.length) {
+                const imgUrl = mapImageUrls[currentImageIndex];
+                console.log('Trying to load image:', imgUrl);
+
+                const img = new Image();
+
+                img.onload = function() {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    mapImage = img;
+                    renderLocationPins();
+                    console.log('Successfully loaded image!');
+                };
+
+                img.onerror = function() {
+                    console.log('Failed to load image, trying next...');
+                    currentImageIndex++;
+                    tryLoadNextImage();
+                };
+
+                img.src = imgUrl;
+            } else {
+                console.log('All images failed, creating blank canvas');
+                createBlankCanvas();
+            }
+        }
+
+        // Start loading images
+        tryLoadNextImage();
+
+        // Handle image upload
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        mapImage = img;
+                        renderLocationPins();
+                        alert('Map image uploaded successfully!');
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Tool selection
+        drawBtn.addEventListener('click', () => {
+            currentTool = 'draw';
+            drawBtn.classList.add('active');
+            eraseBtn.classList.remove('active');
+            markerBtn.classList.remove('active');
+            addLocationBtn.classList.remove('active');
+            settingLocationFor = null;
+            document.querySelectorAll('.location-item').forEach(i =>
+                i.classList.remove('setting-location')
+            );
+            canvas.style.cursor = 'crosshair';
+        });
+
+        eraseBtn.addEventListener('click', () => {
+            currentTool = 'erase';
+            eraseBtn.classList.add('active');
+            drawBtn.classList.remove('active');
+            markerBtn.classList.remove('active');
+            addLocationBtn.classList.remove('active');
+            settingLocationFor = null;
+            document.querySelectorAll('.location-item').forEach(i =>
+                i.classList.remove('setting-location')
+            );
+            canvas.style.cursor = 'crosshair';
+        });
+
+        markerBtn.addEventListener('click', () => {
+            currentTool = 'marker';
+            markerBtn.classList.add('active');
+            drawBtn.classList.remove('active');
+            eraseBtn.classList.remove('active');
+            addLocationBtn.classList.remove('active');
+            settingLocationFor = null;
+            document.querySelectorAll('.location-item').forEach(i =>
+                i.classList.remove('setting-location')
+            );
+            canvas.style.cursor = 'pointer';
+        });
+
+        addLocationBtn.addEventListener('click', () => {
+            const locationName = prompt('Enter location name:');
+            if (!locationName || locationName.trim() === '') return;
+
+            if (locationCoords[locationName]) {
+                alert('A location with this name already exists!');
+                return;
+            }
+
+            // Enter "set location" mode for this new location
+            settingLocationFor = locationName;
+            addLocationBtn.classList.add('active');
+            drawBtn.classList.remove('active');
+            eraseBtn.classList.remove('active');
+            markerBtn.classList.remove('active');
+            canvas.style.cursor = 'crosshair';
+            alert(`Click on the map where "${locationName}" is located.`);
+        });
+
+        // Color picker
+        colorPicker.addEventListener('input', (e) => {
+            currentColor = e.target.value;
+        });
+
+        // Brush size
+        brushSize.addEventListener('input', (e) => {
+            currentSize = e.target.value;
+            sizeDisplay.textContent = currentSize + 'px';
+        });
+
+        // Clear drawing
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Clear all drawings and markers? This cannot be undone.')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(mapImage, 0, 0);
+
+                // Remove all markers
+                document.querySelectorAll('.marker').forEach(m => m.remove());
+                userMarkers = [];
+
+                // Re-render pins
+                renderLocationPins();
+            }
+        });
+
+        // Save image
+        saveBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'expedition33-map-annotated.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        // Toggle pins
+        togglePinsBtn.addEventListener('click', () => {
+            showPins = !showPins;
+            if (showPins) {
+                togglePinsBtn.classList.add('active');
+                togglePinsBtn.textContent = 'Show Pins';
+                renderLocationPins();
+            } else {
+                togglePinsBtn.classList.remove('active');
+                togglePinsBtn.textContent = 'Hide Pins';
+                document.querySelectorAll('.location-pin').forEach(pin => pin.remove());
+            }
+        });
+
+        // Update pin positions on scroll or resize
+        let pinUpdateTimeout;
+        function updatePinPositions() {
+            clearTimeout(pinUpdateTimeout);
+            pinUpdateTimeout = setTimeout(() => {
+                renderLocationPins();
+            }, 100);
+        }
+
+        canvasContainer.addEventListener('scroll', updatePinPositions);
+        window.addEventListener('resize', updatePinPositions);
+
+        // Reset locations - clear all
+        resetLocationsBtn.addEventListener('click', () => {
+            if (confirm('Clear all locations? This cannot be undone.')) {
+                locationCoords = {};
+                saveLocationCoords();
+                populateLocations();
+                renderLocationPins();
+                alert('All locations have been cleared!');
+            }
+        });
+
+        // Drawing functions
+        function startDrawing(e) {
+            // Handle add location mode
+            if (settingLocationFor && typeof settingLocationFor === 'string') {
+                const rect = canvas.getBoundingClientRect();
+                const scrollX = canvasContainer.scrollLeft;
+                const scrollY = canvasContainer.scrollTop;
+                const x = e.clientX - rect.left + scrollX;
+                const y = e.clientY - rect.top + scrollY;
+
+                locationCoords[settingLocationFor] = { x, y };
+                saveLocationCoords();
+
+                alert(`Location "${settingLocationFor}" has been created!`);
+                settingLocationFor = null;
+                addLocationBtn.classList.remove('active');
+
+                populateLocations();
+                renderLocationPins();
+
+                return;
+            }
+
+            if (currentTool === 'marker') {
+                addMarker(e);
+                return;
+            }
+            isDrawing = true;
+            draw(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!isDrawing || currentTool === 'marker' || settingLocationFor) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            ctx.lineWidth = currentSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (currentTool === 'draw') {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+            } else if (currentTool === 'erase') {
+                ctx.globalCompositeOperation = 'destination-out';
+            }
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        function addMarker(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const markerName = prompt('Enter marker name:');
+            if (!markerName) return;
+
+            const marker = document.createElement('div');
+            marker.className = 'marker';
+            marker.style.left = (rect.left + x) + 'px';
+            marker.style.top = (rect.top + y) + 'px';
+
+            const label = document.createElement('div');
+            label.className = 'marker-label';
+            label.textContent = markerName;
+            marker.appendChild(label);
+
+            // Double-click to remove marker
+            marker.addEventListener('dblclick', () => {
+                if (confirm(`Remove marker "${markerName}"?`)) {
+                    marker.remove();
+                    userMarkers = userMarkers.filter(m => m.element !== marker);
+                }
+            });
+
+            canvasContainer.appendChild(marker);
+            userMarkers.push({ x, y, name: markerName, element: marker });
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const mouseEvent = new MouseEvent('mouseup', {});
+            canvas.dispatchEvent(mouseEvent);
+        });
+    </script>
+</body>
+</html>

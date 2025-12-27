@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly School Schedule</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+
+        .month-selector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .month-selector button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .month-selector button:hover {
+            background: #764ba2;
+        }
+
+        .month-selector h2 {
+            color: #667eea;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .calendar-header {
+            text-align: center;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-day:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border-color: #667eea;
+        }
+
+        .calendar-day.selected {
+            background: #667eea;
+            color: white;
+            border-color: #764ba2;
+        }
+
+        .calendar-day.empty {
+            background: #f5f5f5;
+            cursor: default;
+            border-color: transparent;
+        }
+
+        .calendar-day.empty:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .calendar-day .day-number {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .calendar-day .food-indicator {
+            font-size: 0.8em;
+            margin-top: 5px;
+            color: #4caf50;
+        }
+
+        .schedule-view {
+            display: none;
+        }
+
+        .schedule-view.active {
+            display: block;
+        }
+
+        .schedule-header {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .schedule-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+
+        .schedule-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .schedule-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .time-col {
+            font-weight: bold;
+            color: #764ba2;
+            background: #f8f9fa;
+            width: 80px;
+        }
+
+        .schedule-table input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95em;
+            text-align: center;
+        }
+
+        .food-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .food-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .food-item {
+            display: inline-flex;
+            background: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            transition: all 0.3s;
+        }
+
+        .food-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .food-item label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        .food-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .food-item.checked {
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .color-legend {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .color-legend h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .subject-colors {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .subject-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+
+        .subject-item input[type="text"] {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .subject-item input[type="color"] {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .subject-item button {
+            background: #ff5252;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .add-subject-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .add-subject-btn:hover {
+            background: #764ba2;
+        }
+
+        .lesson-cell {
+            transition: background 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Monthly School Schedule</h1>
+
+        <div class="color-legend">
+            <h3>Subject Colors</h3>
+            <div class="subject-colors" id="subjectColors"></div>
+            <button class="add-subject-btn" onclick="addSubject()">+ Add Subject</button>
+        </div>
+
+        <div class="month-selector">
+            <button onclick="changeMonth(-1)">← Previous</button>
+            <h2 id="currentMonth"></h2>
+            <button onclick="changeMonth(1)">Next →</button>
+        </div>
+
+        <div class="calendar" id="calendar"></div>
+
+        <div class="schedule-view" id="scheduleView">
+            <div class="schedule-header">
+                <h2 id="selectedDayHeader"></h2>
+            </div>
+
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Lesson</th>
+                        <th>Classroom</th>
+                        <th>Homework</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody"></tbody>
+            </table>
+
+            <div class="food-section">
+                <h3>Food Tracker</h3>
+                <div class="food-item" id="food-item">
+                    <label>
+                        <input type="checkbox" id="foodCheckbox" onchange="updateFoodItem()">
+                        <span>Food?</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="backToCalendar()">Back to Calendar</button>
+                <button class="btn btn-primary" onclick="saveSchedule()">Save Schedule</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedDate = null;
+
+        const times = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        // Default subject colors
+        const defaultSubjects = {
+            'Math': '#ffcdd2',
+            'English': '#c5e1a5',
+            'Science': '#b3e5fc',
+            'History': '#ffe0b2',
+            'Art': '#f8bbd0',
+            'Music': '#d1c4e9',
+            'PE': '#fff59d',
+            'Computer': '#b2dfdb'
+        };
+
+        function getSubjectColors() {
+            const saved = localStorage.getItem('subjectColors');
+            return saved ? JSON.parse(saved) : defaultSubjects;
+        }
+
+        function saveSubjectColors(subjects) {
+            localStorage.setItem('subjectColors', JSON.stringify(subjects));
+        }
+
+        function renderSubjectColors() {
+            const container = document.getElementById('subjectColors');
+            const subjects = getSubjectColors();
+            container.innerHTML = '';
+
+            Object.entries(subjects).forEach(([name, color]) => {
+                const item = document.createElement('div');
+                item.className = 'subject-item';
+                item.innerHTML = `
+                    <input type="text" value="${name}" onchange="updateSubjectName('${name}', this.value)">
+                    <input type="color" value="${color}" onchange="updateSubjectColor('${name}', this.value)">
+                    <button onclick="removeSubject('${name}')">✕</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function addSubject() {
+            const subjects = getSubjectColors();
+            const newName = `Subject ${Object.keys(subjects).length + 1}`;
+            subjects[newName] = '#e0e0e0';
+            saveSubjectColors(subjects);
+            renderSubjectColors();
+        }
+
+        function removeSubject(name) {
+            const subjects = getSubjectColors();
+            delete subjects[name];
+            saveSubjectColors(subjects);
+            renderSubjectColors();
+        }
+
+        function updateSubjectName(oldName, newName) {
+            if (oldName === newName) return;
+            const subjects = getSubjectColors();
+            subjects[newName] = subjects[oldName];
+            delete subjects[oldName];
+            saveSubjectColors(subjects);
+            renderSubjectColors();
+        }
+
+        function updateSubjectColor(name, color) {
+            const subjects = getSubjectColors();
+            subjects[name] = color;
+            saveSubjectColors(subjects);
+            renderSubjectColors();
+        }
+
+        function getColorForLesson(lessonName) {
+            const subjects = getSubjectColors();
+            const lowerLesson = lessonName.toLowerCase();
+
+            for (const [subject, color] of Object.entries(subjects)) {
+                if (lowerLesson.includes(subject.toLowerCase())) {
+                    return color;
+                }
+            }
+            return 'white';
+        }
+
+        function applyLessonColors() {
+            times.forEach((time, i) => {
+                const input = document.getElementById(`lesson-${i}`);
+                if (input) {
+                    const color = getColorForLesson(input.value);
+                    input.style.backgroundColor = color;
+                }
+            });
+        }
+
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            const monthHeader = document.getElementById('currentMonth');
+
+            monthHeader.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+            calendar.innerHTML = '';
+
+            // Add day headers
+            dayNames.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-header';
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            // Add empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day empty';
+                calendar.appendChild(emptyDay);
+            }
+
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
+
+                // Check if this day has food marked
+                const dateKey = `${currentYear}-${currentMonth}-${day}`;
+                const dayData = getScheduleData(dateKey);
+                if (dayData && dayData.food) {
+                    const foodIndicator = document.createElement('div');
+                    foodIndicator.className = 'food-indicator';
+                    foodIndicator.textContent = '✓ Food';
+                    dayCell.appendChild(foodIndicator);
+                }
+
+                dayCell.onclick = () => selectDay(day);
+                calendar.appendChild(dayCell);
+            }
+        }
+
+        function selectDay(day) {
+            selectedDate = `${currentYear}-${currentMonth}-${day}`;
+            const date = new Date(currentYear, currentMonth, day);
+            const dayName = dayNames[date.getDay()];
+
+            document.getElementById('selectedDayHeader').textContent =
+                `${dayName}, ${monthNames[currentMonth]} ${day}, ${currentYear}`;
+
+            document.querySelector('.color-legend').style.display = 'none';
+            document.getElementById('calendar').style.display = 'none';
+            document.querySelector('.month-selector').style.display = 'none';
+            document.getElementById('scheduleView').classList.add('active');
+
+            loadDaySchedule(selectedDate);
+        }
+
+        function backToCalendar() {
+            document.querySelector('.color-legend').style.display = 'block';
+            document.getElementById('calendar').style.display = 'grid';
+            document.querySelector('.month-selector').style.display = 'flex';
+            document.getElementById('scheduleView').classList.remove('active');
+            renderCalendar();
+        }
+
+        function loadDaySchedule(dateKey) {
+            const scheduleBody = document.getElementById('scheduleBody');
+            scheduleBody.innerHTML = '';
+
+            const dayData = getScheduleData(dateKey);
+
+            times.forEach((time, i) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="time-col">${time}</td>
+                    <td class="lesson-cell"><input type="text" id="lesson-${i}" placeholder="Lesson ${i + 1}"
+                        value="${dayData?.lessons?.[i]?.lesson || ''}" oninput="autoSave(); applyLessonColors();"></td>
+                    <td><input type="text" id="classroom-${i}" placeholder="Room"
+                        value="${dayData?.lessons?.[i]?.classroom || ''}" oninput="autoSave()"></td>
+                    <td><input type="text" id="homework-${i}" placeholder="Homework notes"
+                        value="${dayData?.lessons?.[i]?.homework || ''}" oninput="autoSave()"></td>
+                `;
+                scheduleBody.appendChild(row);
+            });
+
+            const foodCheckbox = document.getElementById('foodCheckbox');
+            foodCheckbox.checked = dayData?.food || false;
+            updateFoodItem();
+
+            applyLessonColors();
+        }
+
+        function changeMonth(direction) {
+            currentMonth += direction;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        }
+
+        function updateFoodItem() {
+            const checkbox = document.getElementById('foodCheckbox');
+            const parent = document.getElementById('food-item');
+            if (checkbox.checked) {
+                parent.classList.add('checked');
+            } else {
+                parent.classList.remove('checked');
+            }
+            autoSave();
+        }
+
+        function autoSave() {
+            if (!selectedDate) return;
+
+            const dayData = {
+                lessons: [],
+                food: document.getElementById('foodCheckbox').checked
+            };
+
+            times.forEach((time, i) => {
+                dayData.lessons.push({
+                    lesson: document.getElementById(`lesson-${i}`).value,
+                    classroom: document.getElementById(`classroom-${i}`).value,
+                    homework: document.getElementById(`homework-${i}`).value
+                });
+            });
+
+            saveScheduleData(selectedDate, dayData);
+        }
+
+        function saveSchedule() {
+            autoSave();
+            alert('Schedule saved successfully!');
+        }
+
+        function getScheduleData(dateKey) {
+            const allData = JSON.parse(localStorage.getItem('monthSchedule') || '{}');
+            return allData[dateKey];
+        }
+
+        function saveScheduleData(dateKey, data) {
+            const allData = JSON.parse(localStorage.getItem('monthSchedule') || '{}');
+            allData[dateKey] = data;
+            localStorage.setItem('monthSchedule', JSON.stringify(allData));
+        }
+
+        renderSubjectColors();
+        renderCalendar();
+    </script>
+</body>
+</html>

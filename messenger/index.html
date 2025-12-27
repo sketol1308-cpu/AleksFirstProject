@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messenger - Login</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --card-bg: white;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-on-gradient: white;
+            --border-color: #e0e0e0;
+            --input-bg: white;
+        }
+
+        body.dark-mode {
+            --bg-gradient-start: #1a1a2e;
+            --bg-gradient-end: #16213e;
+            --card-bg: #0f3460;
+            --text-primary: #eaeaea;
+            --text-secondary: #bbb;
+            --text-on-gradient: white;
+            --border-color: #2a2a3e;
+            --input-bg: #1a1a2e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-on-gradient);
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .dark-mode-toggle {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .dark-mode-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: #667eea;
+            border-color: var(--card-bg);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="date"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        input[type="date"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="file"] {
+            padding: 8px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .profiles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .profile-card {
+            background: white;
+            border: 3px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+
+        .profile-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+
+        .profile-picture {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            border: 4px solid #667eea;
+            display: block;
+        }
+
+        .profile-nickname {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .profile-status {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            font-style: italic;
+        }
+
+        .selected-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #2ed573;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1em;
+            padding: 40px;
+        }
+
+        .error-message {
+            color: #ff4757;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .success-message {
+            background: #2ed573;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .image-crop-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-crop-modal.active {
+            display: flex;
+        }
+
+        .crop-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .crop-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .crop-canvas-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #cropCanvas {
+            position: absolute;
+            cursor: move;
+        }
+
+        .crop-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            border: 4px solid #667eea;
+        }
+
+        #previewCanvas {
+            display: block;
+        }
+
+        .crop-controls {
+            margin-bottom: 20px;
+        }
+
+        .crop-controls label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .zoom-slider {
+            width: 100%;
+        }
+
+        .crop-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .crop-buttons button {
+            flex: 1;
+        }
+
+        .cancel-btn {
+            background: #95a5a6;
+        }
+
+        .cancel-btn:hover {
+            background: #7f8c8d;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: var(--text-secondary);
+            padding: 5px;
+            line-height: 1;
+        }
+
+        .password-toggle:hover {
+            color: #667eea;
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+
+        .forgot-password a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 0.95em;
+        }
+
+        .verification-code {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            letter-spacing: 8px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+
+        .code-instruction {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        body.dark-mode .code-instruction {
+            background: #6c5914;
+            color: #fff3cd;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            Messenger
+            <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark Mode">🌙</button>
+        </h1>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+            <button class="tab-btn" onclick="switchTab('register')">Register</button>
+        </div>
+
+        <!-- Login Tab -->
+        <div id="loginTab" class="tab-content active">
+            <div class="form-container">
+                <h2 style="margin-bottom: 20px; color: var(--text-primary);">Login to Your Account</h2>
+                <div class="error-message" id="loginError" style="background: #ff4757; color: white; padding: 12px; border-radius: 8px; margin-bottom: 20px;">Invalid email or password!</div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <input type="email" id="loginEmail" required placeholder="Enter your email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="loginPassword" required placeholder="Enter your password">
+                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">👁️</button>
+                        </div>
+                    </div>
+
+                    <div class="forgot-password">
+                        <a onclick="openForgotPassword()">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="btn">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Register Tab -->
+        <div id="registerTab" class="tab-content">
+            <div class="form-container">
+                <div class="success-message" id="successMessage">Profile created successfully! Please login.</div>
+                <h2 style="margin-bottom: 20px; color: var(--text-primary);">Create New Account</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="nickname">Nickname</label>
+                        <input type="text" id="nickname" required placeholder="Enter your nickname">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" required placeholder="Enter your email">
+                        <div class="error-message" id="emailError">This email is already registered!</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" required placeholder="Enter your password (min 6 characters)" minlength="6">
+                            <button type="button" class="password-toggle" onclick="togglePassword('password', this)">👁️</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="picture">Profile Picture</label>
+                        <input type="file" id="picture" accept="image/*" required>
+                        <div id="picturePreview" style="display: none; margin-top: 15px; text-align: center;">
+                            <img id="previewImage" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid #667eea; object-fit: cover;">
+                            <div style="color: #2ed573; font-weight: 600; margin-top: 10px;">Picture ready!</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dob">Date of Birth</label>
+                        <input type="date" id="dob" required>
+                        <div class="error-message" id="dobError">Birthday cannot be in the future!</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <input type="text" id="status" required placeholder="What's on your mind?">
+                    </div>
+
+                    <button type="submit" class="btn">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="image-crop-modal" id="cropModal">
+        <div class="crop-container">
+            <div class="crop-title">Crop Your Profile Picture</div>
+
+            <div class="crop-canvas-container">
+                <canvas id="cropCanvas"></canvas>
+            </div>
+
+            <div class="crop-preview">
+                <canvas id="previewCanvas" width="150" height="150"></canvas>
+            </div>
+
+            <div class="crop-controls">
+                <label for="zoomSlider">Zoom</label>
+                <input type="range" id="zoomSlider" class="zoom-slider" min="100" max="300" value="100">
+            </div>
+
+            <div class="crop-buttons">
+                <button class="btn cancel-btn" onclick="cancelCrop()">Cancel</button>
+                <button class="btn" onclick="applyCrop()">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div class="modal" id="forgotPasswordModal">
+        <div class="modal-content">
+            <div class="modal-title">Forgot Password</div>
+            <div class="modal-subtitle">Enter your email to receive a verification code</div>
+
+            <!-- Step 1: Enter Email -->
+            <div id="forgotStep1">
+                <form id="forgotEmailForm">
+                    <div class="form-group">
+                        <label for="forgotEmail">Email Address</label>
+                        <input type="email" id="forgotEmail" required placeholder="Enter your email">
+                        <div class="error-message" id="forgotEmailError">Email not found!</div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="btn cancel-btn" onclick="closeForgotPassword()">Cancel</button>
+                        <button type="submit" class="btn">Send Code</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2: Enter Code and New Password -->
+            <div id="forgotStep2" style="display: none;">
+                <div class="code-instruction">
+                    Verification code sent to your email!
+                </div>
+                <div class="verification-code" id="displayCode"></div>
+                <form id="forgotResetForm">
+                    <div class="form-group">
+                        <label for="verificationCode">Enter Verification Code</label>
+                        <input type="text" id="verificationCode" required placeholder="Enter the code above" maxlength="6" style="text-align: center; font-size: 1.2em; letter-spacing: 5px; font-family: monospace;">
+                        <div class="error-message" id="codeError">Incorrect verification code!</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="newPassword" required placeholder="Enter new password (min 6 characters)" minlength="6">
+                            <button type="button" class="password-toggle" onclick="togglePassword('newPassword', this)">👁️</button>
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="btn cancel-btn" onclick="closeForgotPassword()">Cancel</button>
+                        <button type="submit" class="btn">Reset Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvQZ9X4K3x5YxP8gH9LmNjK8TqV3WxYzA",
+            authDomain: "messenger-app-sync.firebaseapp.com",
+            databaseURL: "https://messenger-app-sync-default-rtdb.firebaseio.com",
+            projectId: "messenger-app-sync",
+            storageBucket: "messenger-app-sync.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
+        };
+
+        // Initialize Firebase
+        let database;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            alert('Error connecting to database. Please refresh the page.');
+        }
+
+        let profiles = [];
+        let selectedProfileIndex = null;
+
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const pictureInput = document.getElementById('picture');
+        const dobInput = document.getElementById('dob');
+        const emailInput = document.getElementById('email');
+        const cropModal = document.getElementById('cropModal');
+        const cropCanvas = document.getElementById('cropCanvas');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const cropCtx = cropCanvas.getContext('2d');
+        const previewCtx = previewCanvas.getContext('2d');
+
+        let currentImage = null;
+        let imageX = 0;
+        let imageY = 0;
+        let imageScale = 1;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let croppedImageData = null;
+
+        // Dark Mode
+        const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+        if (savedDarkMode) {
+            document.body.classList.add('dark-mode');
+            darkModeToggle.textContent = '☀️';
+        }
+
+        darkModeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+            darkModeToggle.textContent = isDarkMode ? '☀️' : '🌙';
+        });
+
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tab === 'login') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('loginTab').classList.add('active');
+                // Hide any login errors when switching to login tab
+                document.getElementById('loginError').style.display = 'none';
+            } else {
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                document.getElementById('registerTab').classList.add('active');
+            }
+        }
+
+        // Image cropping
+        pictureInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        currentImage = img;
+                        initCropper();
+                        cropModal.classList.add('active');
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function initCropper() {
+            cropCanvas.width = 400;
+            cropCanvas.height = 400;
+
+            const scale = Math.max(400 / currentImage.width, 400 / currentImage.height);
+            imageScale = scale;
+            imageX = (400 - currentImage.width * scale) / 2;
+            imageY = (400 - currentImage.height * scale) / 2;
+
+            zoomSlider.value = 100;
+            drawCropCanvas();
+        }
+
+        function drawCropCanvas() {
+            cropCtx.clearRect(0, 0, 400, 400);
+            cropCtx.fillStyle = '#f0f0f0';
+            cropCtx.fillRect(0, 0, 400, 400);
+
+            cropCtx.save();
+            cropCtx.drawImage(
+                currentImage,
+                imageX,
+                imageY,
+                currentImage.width * imageScale,
+                currentImage.height * imageScale
+            );
+            cropCtx.restore();
+
+            cropCtx.strokeStyle = '#667eea';
+            cropCtx.lineWidth = 3;
+            cropCtx.beginPath();
+            cropCtx.arc(200, 200, 150, 0, Math.PI * 2);
+            cropCtx.stroke();
+
+            updatePreview();
+        }
+
+        function updatePreview() {
+            previewCtx.clearRect(0, 0, 150, 150);
+
+            previewCtx.save();
+            previewCtx.beginPath();
+            previewCtx.arc(75, 75, 75, 0, Math.PI * 2);
+            previewCtx.closePath();
+            previewCtx.clip();
+
+            const scale = 150 / 300;
+            previewCtx.drawImage(
+                cropCanvas,
+                50, 50, 300, 300,
+                0, 0, 150, 150
+            );
+            previewCtx.restore();
+        }
+
+        cropCanvas.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            dragStartX = e.offsetX;
+            dragStartY = e.offsetY;
+        });
+
+        cropCanvas.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                const dx = e.offsetX - dragStartX;
+                const dy = e.offsetY - dragStartY;
+                imageX += dx;
+                imageY += dy;
+                dragStartX = e.offsetX;
+                dragStartY = e.offsetY;
+                drawCropCanvas();
+            }
+        });
+
+        cropCanvas.addEventListener('mouseup', function() {
+            isDragging = false;
+        });
+
+        cropCanvas.addEventListener('mouseleave', function() {
+            isDragging = false;
+        });
+
+        zoomSlider.addEventListener('input', function() {
+            const zoomPercent = this.value / 100;
+            const baseScale = Math.max(400 / currentImage.width, 400 / currentImage.height);
+            const newScale = baseScale * zoomPercent;
+
+            const centerX = (200 - imageX) / imageScale;
+            const centerY = (200 - imageY) / imageScale;
+
+            imageScale = newScale;
+            imageX = 200 - centerX * imageScale;
+            imageY = 200 - centerY * imageScale;
+
+            drawCropCanvas();
+        });
+
+        function applyCrop() {
+            const circleCanvas = document.createElement('canvas');
+            circleCanvas.width = 300;
+            circleCanvas.height = 300;
+            const circleCtx = circleCanvas.getContext('2d');
+
+            circleCtx.beginPath();
+            circleCtx.arc(150, 150, 150, 0, Math.PI * 2);
+            circleCtx.closePath();
+            circleCtx.clip();
+
+            circleCtx.drawImage(cropCanvas, 50, 50, 300, 300, 0, 0, 300, 300);
+
+            croppedImageData = circleCanvas.toDataURL('image/png');
+            cropModal.classList.remove('active');
+
+            // Show preview
+            document.getElementById('previewImage').src = croppedImageData;
+            document.getElementById('picturePreview').style.display = 'block';
+
+            // Make file input not required anymore
+            pictureInput.required = false;
+        }
+
+        function cancelCrop() {
+            cropModal.classList.remove('active');
+            pictureInput.value = '';
+            croppedImageData = null;
+            document.getElementById('picturePreview').style.display = 'none';
+        }
+
+        // Date of birth validation
+        dobInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (selectedDate > today) {
+                document.getElementById('dobError').style.display = 'block';
+                this.setCustomValidity('Birthday cannot be in the future');
+            } else {
+                document.getElementById('dobError').style.display = 'none';
+                this.setCustomValidity('');
+            }
+        });
+
+        // Email validation
+        emailInput.addEventListener('blur', function() {
+            const email = this.value.trim();
+            if (!email) return;
+
+            const emailKey = email.replace(/\./g, '_');
+            database.ref('profiles/' + emailKey).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        document.getElementById('emailError').style.display = 'block';
+                        emailInput.setCustomValidity('Email already registered');
+                    } else {
+                        document.getElementById('emailError').style.display = 'none';
+                        emailInput.setCustomValidity('');
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error checking email:', error);
+                });
+        });
+
+        // Register form
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!croppedImageData) {
+                alert('Please select and crop a profile picture');
+                return;
+            }
+
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating Account...';
+
+            const email = document.getElementById('email').value.trim();
+            const emailKey = email.replace(/\./g, '_');
+
+            console.log('Starting registration for:', email);
+            console.log('Database object:', database);
+
+            if (!database) {
+                alert('Firebase database not initialized! Please refresh the page.');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Create Account';
+                return;
+            }
+
+            // Check Firebase if email already exists
+            database.ref('profiles/' + emailKey).once('value')
+                .then((snapshot) => {
+                    console.log('Email check complete');
+                    if (snapshot.exists()) {
+                        alert('This email is already registered! Please login instead.');
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Create Account';
+                        throw new Error('Email already exists');
+                    }
+
+                    const profileData = {
+                        nickname: document.getElementById('nickname').value.trim(),
+                        email: email,
+                        password: document.getElementById('password').value,
+                        picture: croppedImageData,
+                        dob: document.getElementById('dob').value,
+                        status: document.getElementById('status').value.trim()
+                    };
+
+                    console.log('Saving profile to Firebase...');
+                    // Save to Firebase and return profile data
+                    return database.ref('profiles/' + emailKey).set(profileData)
+                        .then(() => {
+                            console.log('Profile saved successfully!');
+                            return profileData;
+                        });
+                })
+                .then((profileData) => {
+                    if (!profileData) return; // Skip if email already exists
+
+                    console.log('Redirecting to chat...');
+                    // Auto-login: Set current user and redirect to chat immediately
+                    localStorage.setItem('currentUser', JSON.stringify(profileData));
+                    window.location.href = 'chat.html';
+                })
+                .catch((error) => {
+                    console.error('Error saving profile:', error);
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Create Account';
+                    if (error.message !== 'Email already exists') {
+                        alert('Error: ' + error.message + '\n\nPlease check your internet connection and try again.');
+                    }
+                });
+        });
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Logging in...';
+
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const loginError = document.getElementById('loginError');
+
+            // Hide error initially
+            loginError.style.display = 'none';
+
+            // Check Firebase directly for the profile
+            const emailKey = email.replace(/\./g, '_');
+
+            database.ref('profiles/' + emailKey).once('value')
+                .then((snapshot) => {
+                    const profile = snapshot.val();
+
+                    if (profile && profile.password === password) {
+                        // Login successful - redirect immediately
+                        localStorage.setItem('currentUser', JSON.stringify(profile));
+                        window.location.href = 'chat.html';
+                    } else {
+                        // Login failed
+                        loginError.style.display = 'block';
+                        loginError.textContent = profile ? 'Invalid password!' : 'Email not found! Please register first.';
+                        document.getElementById('loginPassword').value = '';
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Login';
+                    }
+                })
+                .catch((error) => {
+                    console.error('Login error:', error);
+                    loginError.style.display = 'block';
+                    loginError.textContent = 'Error connecting to database. Please try again.';
+                    document.getElementById('loginPassword').value = '';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Login';
+                });
+        });
+
+        // Load profiles from Firebase
+        function loadProfiles() {
+            database.ref('profiles').on('value', (snapshot) => {
+                profiles = [];
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        profiles.push(data[key]);
+                    });
+                }
+            });
+        }
+
+        // Toggle password visibility
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
+        // Forgot password functionality
+        let generatedCode = '';
+        let forgotPasswordEmail = '';
+
+        function openForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.add('active');
+            document.getElementById('forgotStep1').style.display = 'block';
+            document.getElementById('forgotStep2').style.display = 'none';
+            document.getElementById('forgotEmail').value = '';
+            document.getElementById('forgotEmailError').style.display = 'none';
+        }
+
+        function closeForgotPassword() {
+            document.getElementById('forgotPasswordModal').classList.remove('active');
+            generatedCode = '';
+            forgotPasswordEmail = '';
+        }
+
+        // Generate random 6-character code
+        function generateVerificationCode() {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return code;
+        }
+
+        // Handle forgot email form
+        document.getElementById('forgotEmailForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('forgotEmail').value.trim();
+            const forgotEmailError = document.getElementById('forgotEmailError');
+
+            // Check if email exists in Firebase
+            const emailKey = email.replace(/\./g, '_');
+            database.ref('profiles/' + emailKey).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        // Generate and display code
+                        generatedCode = generateVerificationCode();
+                        forgotPasswordEmail = email;
+
+                        document.getElementById('displayCode').textContent = generatedCode;
+                        document.getElementById('forgotStep1').style.display = 'none';
+                        document.getElementById('forgotStep2').style.display = 'block';
+                        document.getElementById('verificationCode').value = '';
+                        document.getElementById('newPassword').value = '';
+                        document.getElementById('codeError').style.display = 'none';
+
+                        forgotEmailError.style.display = 'none';
+                    } else {
+                        forgotEmailError.style.display = 'block';
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error checking email:', error);
+                    forgotEmailError.style.display = 'block';
+                });
+        });
+
+        // Handle password reset form
+        document.getElementById('forgotResetForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const enteredCode = document.getElementById('verificationCode').value.trim().toUpperCase();
+            const newPassword = document.getElementById('newPassword').value;
+            const codeError = document.getElementById('codeError');
+
+            if (enteredCode === generatedCode) {
+                // Update password in Firebase
+                const emailKey = forgotPasswordEmail.replace(/\./g, '_');
+
+                database.ref('profiles/' + emailKey + '/password').set(newPassword)
+                    .then(() => {
+                        alert('Password reset successful! You can now login with your new password.');
+                        closeForgotPassword();
+                        switchTab('login');
+                    })
+                    .catch((error) => {
+                        alert('Error resetting password: ' + error.message);
+                    });
+            } else {
+                codeError.style.display = 'block';
+            }
+        });
+
+        // Initial load
+        loadProfiles();
+    </script>
+</body>
+</html>

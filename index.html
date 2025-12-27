@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile List</title>
+    <style>
+        :root {
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --card-bg: white;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-on-gradient: white;
+            --border-color: #e0e0e0;
+            --input-bg: white;
+        }
+
+        body.dark-mode {
+            --bg-gradient-start: #1a1a2e;
+            --bg-gradient-end: #16213e;
+            --card-bg: #0f3460;
+            --text-primary: #eaeaea;
+            --text-secondary: #bbb;
+            --text-on-gradient: white;
+            --border-color: #2a2a3e;
+            --input-bg: #1a1a2e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.3s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-on-gradient);
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .dark-mode-toggle {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .dark-mode-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .form-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="date"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        input[type="date"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="file"] {
+            padding: 8px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .profiles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .profile-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+            position: relative;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .profile-picture {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            background: #f0f0f0;
+            display: block;
+            border: 4px solid #667eea;
+        }
+
+        .profile-info {
+            text-align: center;
+        }
+
+        .profile-nickname {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .profile-dob {
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .profile-age {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .me-badge {
+            background: #2ed573;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-left: 8px;
+            display: inline-block;
+        }
+
+        .error-message {
+            color: #ff4757;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .profile-status {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.9em;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            transition: background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #ff3838;
+        }
+
+        .edit-btn {
+            position: absolute;
+            top: 10px;
+            right: 50px;
+            background: #5352ed;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            transition: background 0.3s;
+        }
+
+        .edit-btn:hover {
+            background: #3742fa;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-on-gradient);
+            font-size: 1.2em;
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+        }
+
+        .user-header {
+            background: var(--card-bg);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .user-header.active {
+            display: flex;
+        }
+
+        .user-info-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #667eea;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-welcome {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .user-age-status {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .logout-btn {
+            background: #ff4757;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #ff3838;
+        }
+
+        .search-container {
+            background: var(--card-bg);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            margin-bottom: 15px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filters-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .share-btn {
+            background: #2ed573;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-left: auto;
+        }
+
+        .share-btn:hover {
+            background: #26de81;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .image-crop-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-crop-modal.active {
+            display: flex;
+        }
+
+        .crop-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .crop-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .crop-canvas-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #cropCanvas {
+            position: absolute;
+            cursor: move;
+        }
+
+        .crop-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            border: 4px solid #667eea;
+        }
+
+        #previewCanvas {
+            display: block;
+        }
+
+        .crop-controls {
+            margin-bottom: 20px;
+        }
+
+        .crop-controls label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .zoom-slider {
+            width: 100%;
+        }
+
+        .crop-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .crop-buttons button {
+            flex: 1;
+        }
+
+        .cancel-btn {
+            background: #95a5a6;
+        }
+
+        .cancel-btn:hover {
+            background: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            Profile List
+            <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark Mode">🌙</button>
+        </h1>
+
+        <div class="user-header" id="userHeader">
+            <div class="user-info-header">
+                <img src="" alt="User Avatar" class="user-avatar" id="userAvatar">
+                <div class="user-details">
+                    <div class="user-welcome">Welcome back, <span id="userName"></span>!</div>
+                    <div class="user-age-status">
+                        <span id="userAge"></span> • <span id="userStatus"></span>
+                    </div>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="form-container">
+            <h2 id="formTitle" style="margin-bottom: 20px; color: #333;">Add New Profile</h2>
+            <form id="profileForm">
+                <input type="hidden" id="editIndex" value="">
+
+                <div class="form-group">
+                    <label for="nickname">Nickname</label>
+                    <input type="text" id="nickname" required placeholder="Enter your nickname">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" required placeholder="Enter your email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="Enter your password">
+                </div>
+
+                <div class="form-group">
+                    <label for="picture">Picture</label>
+                    <input type="file" id="picture" accept="image/*">
+                </div>
+
+                <div class="form-group">
+                    <label for="dob">Date of Birth</label>
+                    <input type="date" id="dob" required>
+                    <div class="error-message" id="dobError">Error: Birthday cannot be in the future!</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <input type="text" id="status" required placeholder="What's on your mind?">
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="isMe" style="width: auto; margin-right: 10px;">
+                        This is me
+                    </label>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Add Profile</button>
+            </form>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search profiles by nickname...">
+
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="sortBy">Sort by:</label>
+                    <select id="sortBy" class="filter-select">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="age-young">Age (Youngest)</option>
+                        <option value="age-old">Age (Oldest)</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filterAge">Age Range:</label>
+                    <select id="filterAge" class="filter-select">
+                        <option value="all">All Ages</option>
+                        <option value="0-12">0-12 years</option>
+                        <option value="13-17">13-17 years</option>
+                        <option value="18-24">18-24 years</option>
+                        <option value="25-34">25-34 years</option>
+                        <option value="35-50">35-50 years</option>
+                        <option value="51+">51+ years</option>
+                    </select>
+                </div>
+
+                <button class="share-btn" onclick="shareLink()">Share Link</button>
+            </div>
+        </div>
+
+        <div id="toast" class="toast"></div>
+
+        <div id="profilesList" class="profiles-grid"></div>
+    </div>
+
+    <div class="image-crop-modal" id="cropModal">
+        <div class="crop-container">
+            <div class="crop-title">Crop Your Profile Picture</div>
+
+            <div class="crop-canvas-container">
+                <canvas id="cropCanvas"></canvas>
+            </div>
+
+            <div class="crop-preview">
+                <canvas id="previewCanvas" width="150" height="150"></canvas>
+            </div>
+
+            <div class="crop-controls">
+                <label for="zoomSlider">Zoom</label>
+                <input type="range" id="zoomSlider" class="zoom-slider" min="100" max="300" value="100">
+            </div>
+
+            <div class="crop-buttons">
+                <button class="btn cancel-btn" onclick="cancelCrop()">Cancel</button>
+                <button class="btn" onclick="applyCrop()">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let profiles = JSON.parse(localStorage.getItem('profiles')) || [];
+
+        const form = document.getElementById('profileForm');
+        const profilesList = document.getElementById('profilesList');
+        const pictureInput = document.getElementById('picture');
+        const dobInput = document.getElementById('dob');
+        const dobError = document.getElementById('dobError');
+        const userHeader = document.getElementById('userHeader');
+        const searchInput = document.getElementById('searchInput');
+        const sortBySelect = document.getElementById('sortBy');
+        const filterAgeSelect = document.getElementById('filterAge');
+        const toast = document.getElementById('toast');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const cropModal = document.getElementById('cropModal');
+        const cropCanvas = document.getElementById('cropCanvas');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const cropCtx = cropCanvas.getContext('2d');
+        const previewCtx = previewCanvas.getContext('2d');
+
+        let currentImage = null;
+        let imageX = 0;
+        let imageY = 0;
+        let imageScale = 1;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let croppedImageData = null;
+
+        // Dark Mode
+        const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+        if (savedDarkMode) {
+            document.body.classList.add('dark-mode');
+            darkModeToggle.textContent = '☀️';
+        }
+
+        darkModeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+            darkModeToggle.textContent = isDarkMode ? '☀️' : '🌙';
+        });
+
+        pictureInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        currentImage = img;
+                        initCropper();
+                        cropModal.classList.add('active');
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function initCropper() {
+            cropCanvas.width = 400;
+            cropCanvas.height = 400;
+
+            const scale = Math.max(400 / currentImage.width, 400 / currentImage.height);
+            imageScale = scale;
+            imageX = (400 - currentImage.width * scale) / 2;
+            imageY = (400 - currentImage.height * scale) / 2;
+
+            zoomSlider.value = 100;
+            drawCropCanvas();
+        }
+
+        function drawCropCanvas() {
+            cropCtx.clearRect(0, 0, 400, 400);
+            cropCtx.fillStyle = '#f0f0f0';
+            cropCtx.fillRect(0, 0, 400, 400);
+
+            cropCtx.save();
+            cropCtx.drawImage(
+                currentImage,
+                imageX,
+                imageY,
+                currentImage.width * imageScale,
+                currentImage.height * imageScale
+            );
+            cropCtx.restore();
+
+            cropCtx.strokeStyle = '#667eea';
+            cropCtx.lineWidth = 3;
+            cropCtx.beginPath();
+            cropCtx.arc(200, 200, 150, 0, Math.PI * 2);
+            cropCtx.stroke();
+
+            updatePreview();
+        }
+
+        function updatePreview() {
+            previewCtx.clearRect(0, 0, 150, 150);
+
+            previewCtx.save();
+            previewCtx.beginPath();
+            previewCtx.arc(75, 75, 75, 0, Math.PI * 2);
+            previewCtx.closePath();
+            previewCtx.clip();
+
+            const scale = 150 / 300;
+            previewCtx.drawImage(
+                cropCanvas,
+                50, 50, 300, 300,
+                0, 0, 150, 150
+            );
+            previewCtx.restore();
+        }
+
+        cropCanvas.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            dragStartX = e.offsetX;
+            dragStartY = e.offsetY;
+        });
+
+        cropCanvas.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                const dx = e.offsetX - dragStartX;
+                const dy = e.offsetY - dragStartY;
+                imageX += dx;
+                imageY += dy;
+                dragStartX = e.offsetX;
+                dragStartY = e.offsetY;
+                drawCropCanvas();
+            }
+        });
+
+        cropCanvas.addEventListener('mouseup', function() {
+            isDragging = false;
+        });
+
+        cropCanvas.addEventListener('mouseleave', function() {
+            isDragging = false;
+        });
+
+        zoomSlider.addEventListener('input', function() {
+            const zoomPercent = this.value / 100;
+            const baseScale = Math.max(400 / currentImage.width, 400 / currentImage.height);
+            const newScale = baseScale * zoomPercent;
+
+            const centerX = (200 - imageX) / imageScale;
+            const centerY = (200 - imageY) / imageScale;
+
+            imageScale = newScale;
+            imageX = 200 - centerX * imageScale;
+            imageY = 200 - centerY * imageScale;
+
+            drawCropCanvas();
+        });
+
+        function applyCrop() {
+            const circleCanvas = document.createElement('canvas');
+            circleCanvas.width = 300;
+            circleCanvas.height = 300;
+            const circleCtx = circleCanvas.getContext('2d');
+
+            circleCtx.beginPath();
+            circleCtx.arc(150, 150, 150, 0, Math.PI * 2);
+            circleCtx.closePath();
+            circleCtx.clip();
+
+            circleCtx.drawImage(cropCanvas, 50, 50, 300, 300, 0, 0, 300, 300);
+
+            croppedImageData = circleCanvas.toDataURL('image/png');
+            cropModal.classList.remove('active');
+            pictureInput.value = '';
+        }
+
+        function cancelCrop() {
+            cropModal.classList.remove('active');
+            pictureInput.value = '';
+            croppedImageData = null;
+        }
+
+        searchInput.addEventListener('input', function() {
+            renderProfiles();
+        });
+
+        sortBySelect.addEventListener('change', function() {
+            renderProfiles();
+        });
+
+        filterAgeSelect.addEventListener('change', function() {
+            renderProfiles();
+        });
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function shareLink() {
+            const link = window.location.href;
+            navigator.clipboard.writeText(link).then(() => {
+                showToast('Link copied to clipboard!');
+            }).catch(() => {
+                showToast('Link: ' + link);
+            });
+        }
+
+        function updateUserHeader() {
+            const myProfile = profiles.find(p => p.isMe);
+
+            if (myProfile) {
+                document.getElementById('userAvatar').src = myProfile.picture;
+                document.getElementById('userName').textContent = myProfile.nickname;
+                document.getElementById('userAge').textContent = calculateAge(myProfile.dob) + ' years old';
+                document.getElementById('userStatus').textContent = myProfile.status;
+                userHeader.classList.add('active');
+            } else {
+                userHeader.classList.remove('active');
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                profiles.forEach(p => p.isMe = false);
+                saveProfiles();
+                updateUserHeader();
+                renderProfiles();
+            }
+        }
+
+        function calculateAge(dob) {
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+
+            return age;
+        }
+
+        dobInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (selectedDate > today) {
+                dobError.style.display = 'block';
+                this.setCustomValidity('Birthday cannot be in the future');
+            } else {
+                dobError.style.display = 'none';
+                this.setCustomValidity('');
+            }
+        });
+
+        function renderProfiles() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const sortBy = sortBySelect.value;
+            const ageFilter = filterAgeSelect.value;
+
+            let filteredProfiles = [...profiles];
+
+            // Apply search filter
+            if (searchTerm) {
+                filteredProfiles = filteredProfiles.filter(profile =>
+                    profile.nickname.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // Apply age range filter
+            if (ageFilter !== 'all') {
+                filteredProfiles = filteredProfiles.filter(profile => {
+                    const age = calculateAge(profile.dob);
+                    if (ageFilter === '0-12') return age >= 0 && age <= 12;
+                    if (ageFilter === '13-17') return age >= 13 && age <= 17;
+                    if (ageFilter === '18-24') return age >= 18 && age <= 24;
+                    if (ageFilter === '25-34') return age >= 25 && age <= 34;
+                    if (ageFilter === '35-50') return age >= 35 && age <= 50;
+                    if (ageFilter === '51+') return age >= 51;
+                    return true;
+                });
+            }
+
+            // Apply sorting
+            filteredProfiles.sort((a, b) => {
+                if (sortBy === 'newest') {
+                    return profiles.indexOf(b) - profiles.indexOf(a);
+                } else if (sortBy === 'oldest') {
+                    return profiles.indexOf(a) - profiles.indexOf(b);
+                } else if (sortBy === 'name-asc') {
+                    return a.nickname.localeCompare(b.nickname);
+                } else if (sortBy === 'name-desc') {
+                    return b.nickname.localeCompare(a.nickname);
+                } else if (sortBy === 'age-young') {
+                    return calculateAge(a.dob) - calculateAge(b.dob);
+                } else if (sortBy === 'age-old') {
+                    return calculateAge(b.dob) - calculateAge(a.dob);
+                }
+                return 0;
+            });
+
+            if (filteredProfiles.length === 0) {
+                if (searchTerm || ageFilter !== 'all') {
+                    profilesList.innerHTML = '<div class="empty-state">No profiles found with current filters</div>';
+                } else {
+                    profilesList.innerHTML = '<div class="empty-state">No profiles yet. Add your first profile above!</div>';
+                }
+                return;
+            }
+
+            profilesList.innerHTML = filteredProfiles.map((profile) => {
+                const index = profiles.indexOf(profile);
+                const age = calculateAge(profile.dob);
+                const meBadge = profile.isMe ? '<span class="me-badge">Me</span>' : '';
+
+                return `
+                <div class="profile-card">
+                    <button class="edit-btn" onclick="editProfile(${index})">✎</button>
+                    <button class="delete-btn" onclick="deleteProfile(${index})">&times;</button>
+                    <img src="${profile.picture}" alt="${profile.nickname}" class="profile-picture" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23ddd%22 width=%22200%22 height=%22200%22/%3E%3Ctext fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2220%22%3ENo Image%3C/text%3E%3C/svg%3E'">
+                    <div class="profile-info">
+                        <div class="profile-nickname">${profile.nickname}${meBadge}</div>
+                        <div class="profile-age">${age} years old</div>
+                        <div class="profile-dob">Born: ${new Date(profile.dob).toLocaleDateString()}</div>
+                        <div class="profile-status">${profile.status}</div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function saveProfiles() {
+            localStorage.setItem('profiles', JSON.stringify(profiles));
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const editIndex = document.getElementById('editIndex').value;
+
+            function saveProfile(pictureData) {
+                const isMe = document.getElementById('isMe').checked;
+
+                if (isMe) {
+                    profiles.forEach(p => p.isMe = false);
+                }
+
+                const profileData = {
+                    nickname: document.getElementById('nickname').value,
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value,
+                    picture: pictureData,
+                    dob: document.getElementById('dob').value,
+                    status: document.getElementById('status').value,
+                    isMe: isMe
+                };
+
+                if (editIndex !== '') {
+                    profiles[parseInt(editIndex)] = profileData;
+                    document.getElementById('editIndex').value = '';
+                    document.getElementById('formTitle').textContent = 'Add New Profile';
+                    document.getElementById('submitBtn').textContent = 'Add Profile';
+                } else {
+                    profiles.push(profileData);
+                }
+
+                saveProfiles();
+                updateUserHeader();
+                renderProfiles();
+                form.reset();
+                pictureInput.required = true;
+                dobError.style.display = 'none';
+                croppedImageData = null;
+            }
+
+            if (croppedImageData) {
+                saveProfile(croppedImageData);
+            } else if (editIndex !== '') {
+                saveProfile(profiles[parseInt(editIndex)].picture);
+            } else {
+                alert('Please select and crop a picture');
+            }
+        });
+
+        function editProfile(index) {
+            const profile = profiles[index];
+            document.getElementById('nickname').value = profile.nickname;
+            document.getElementById('email').value = profile.email || '';
+            document.getElementById('password').value = profile.password || '';
+            document.getElementById('dob').value = profile.dob;
+            document.getElementById('status').value = profile.status;
+            document.getElementById('isMe').checked = profile.isMe || false;
+            document.getElementById('editIndex').value = index;
+            document.getElementById('formTitle').textContent = 'Edit Profile';
+            document.getElementById('submitBtn').textContent = 'Update Profile';
+            pictureInput.required = false;
+            dobError.style.display = 'none';
+            croppedImageData = null;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteProfile(index) {
+            if (confirm('Are you sure you want to delete this profile?')) {
+                profiles.splice(index, 1);
+                saveProfiles();
+                updateUserHeader();
+                renderProfiles();
+            }
+        }
+
+        updateUserHeader();
+        renderProfiles();
+    </script>
+</body>
+</html>

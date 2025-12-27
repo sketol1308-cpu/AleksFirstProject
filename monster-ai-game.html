@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monster AI - Survival Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            height: 90vh;
+            max-height: 700px;
+            border: 3px solid #ffcc00;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.3);
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+        }
+
+        .hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 2px solid #ffcc00;
+            min-width: 200px;
+        }
+
+        .hud-item {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .hud-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .hud-label {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        .health-bar {
+            width: 150px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #ffcc00;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444 0%, #ff6666 100%);
+            transition: width 0.3s;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px 60px;
+            border-radius: 15px;
+            border: 3px solid #ff4444;
+            text-align: center;
+            display: none;
+        }
+
+        .game-over.show {
+            display: block;
+        }
+
+        .game-over h1 {
+            color: #ff4444;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+
+        .game-over p {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #ffcc00;
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.5);
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 2px solid #ffcc00;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .instructions span {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        .ammo-bar {
+            width: 150px;
+            height: 15px;
+            background: #333;
+            border: 2px solid #ffcc00;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .ammo-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffcc00 0%, #ff9900 100%);
+            transition: width 0.2s;
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .start-screen.hide {
+            display: none;
+        }
+
+        .start-screen h1 {
+            font-size: 64px;
+            color: #ffcc00;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px rgba(255, 204, 0, 0.5);
+        }
+
+        .start-screen p {
+            font-size: 20px;
+            margin-bottom: 40px;
+            color: #ccc;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+            color: #000;
+            border: none;
+            padding: 20px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.7);
+        }
+
+        .difficulty {
+            margin-bottom: 30px;
+        }
+
+        .difficulty label {
+            margin-right: 20px;
+            font-size: 18px;
+        }
+
+        .difficulty select {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 2px solid #ffcc00;
+            background: #2a2a4a;
+            color: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="start-screen" id="startScreen">
+            <h1>MONSTER AI</h1>
+            <p>Survive as long as you can!</p>
+            <div class="difficulty">
+                <label for="difficultySelect">Difficulty:</label>
+                <select id="difficultySelect">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                    <option value="nightmare">Nightmare</option>
+                </select>
+            </div>
+            <button class="start-btn" id="startBtn">START GAME</button>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="hud">
+            <div class="hud-item">
+                <span class="hud-label">Health:</span>
+                <div class="health-bar">
+                    <div class="health-fill" id="healthFill"></div>
+                </div>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Ammo:</span> <span id="ammoText">30 / 30</span>
+                <div class="ammo-bar">
+                    <div class="ammo-fill" id="ammoFill"></div>
+                </div>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Score:</span> <span id="score">0</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Kills:</span> <span id="kills">0</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Time:</span> <span id="time">0:00</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Monsters:</span> <span id="monsterCount">1</span>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <span>WASD</span> to move | <span>SPACE</span> to dash | <span>LEFT CLICK</span> to shoot | <span>R</span> to reload
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <h1>GAME OVER</h1>
+            <p>Final Score: <span id="finalScore">0</span></p>
+            <p>Survival Time: <span id="finalTime">0:00</span></p>
+            <button class="restart-btn" id="restartBtn">RESTART</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+        const gameOverScreen = document.getElementById('gameOver');
+        const restartBtn = document.getElementById('restartBtn');
+        const healthFill = document.getElementById('healthFill');
+        const scoreDisplay = document.getElementById('score');
+        const timeDisplay = document.getElementById('time');
+        const monsterCountDisplay = document.getElementById('monsterCount');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const finalTimeDisplay = document.getElementById('finalTime');
+        const difficultySelect = document.getElementById('difficultySelect');
+        const ammoFill = document.getElementById('ammoFill');
+        const ammoText = document.getElementById('ammoText');
+        const killsDisplay = document.getElementById('kills');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game state
+        let gameRunning = false;
+        let player;
+        let monsters = [];
+        let particles = [];
+        let bullets = [];
+        let keys = {};
+        let score = 0;
+        let kills = 0;
+        let startTime;
+        let difficulty = 'medium';
+        let mouseX = 0;
+        let mouseY = 0;
+
+        // Difficulty settings
+        const difficultySettings = {
+            easy: { monsterSpeed: 1.5, spawnRate: 15000, playerSpeed: 4, dashCooldown: 2000 },
+            medium: { monsterSpeed: 2, spawnRate: 10000, playerSpeed: 4, dashCooldown: 3000 },
+            hard: { monsterSpeed: 2.5, spawnRate: 7000, playerSpeed: 4, dashCooldown: 4000 },
+            nightmare: { monsterSpeed: 3.5, spawnRate: 5000, playerSpeed: 4, dashCooldown: 5000 }
+        };
+
+        // Player class
+        class Player {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 15;
+                this.speed = difficultySettings[difficulty].playerSpeed;
+                this.health = 100;
+                this.maxHealth = 100;
+                this.dashSpeed = 12;
+                this.isDashing = false;
+                this.dashDuration = 200;
+                this.dashCooldown = difficultySettings[difficulty].dashCooldown;
+                this.lastDash = 0;
+                this.invulnerable = false;
+                this.invulnerableDuration = 500;
+                this.ammo = 30;
+                this.maxAmmo = 30;
+                this.isReloading = false;
+                this.reloadTime = 1500;
+                this.lastShot = 0;
+                this.fireRate = 200;
+            }
+
+            update() {
+                const currentSpeed = this.isDashing ? this.dashSpeed : this.speed;
+                let dx = 0;
+                let dy = 0;
+
+                if (keys['w'] || keys['ArrowUp']) dy -= 1;
+                if (keys['s'] || keys['ArrowDown']) dy += 1;
+                if (keys['a'] || keys['ArrowLeft']) dx -= 1;
+                if (keys['d'] || keys['ArrowRight']) dx += 1;
+
+                // Normalize diagonal movement
+                if (dx !== 0 && dy !== 0) {
+                    dx *= 0.707;
+                    dy *= 0.707;
+                }
+
+                this.x += dx * currentSpeed;
+                this.y += dy * currentSpeed;
+
+                // Boundary check
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+            }
+
+            dash() {
+                const now = Date.now();
+                if (now - this.lastDash > this.dashCooldown) {
+                    this.isDashing = true;
+                    this.invulnerable = true;
+                    this.lastDash = now;
+
+                    // Create dash particles
+                    for (let i = 0; i < 10; i++) {
+                        particles.push(new Particle(this.x, this.y, '#00ffff'));
+                    }
+
+                    setTimeout(() => {
+                        this.isDashing = false;
+                    }, this.dashDuration);
+
+                    setTimeout(() => {
+                        this.invulnerable = false;
+                    }, this.invulnerableDuration);
+                }
+            }
+
+            shoot(targetX, targetY) {
+                const now = Date.now();
+                if (this.isReloading || this.ammo <= 0 || now - this.lastShot < this.fireRate) return;
+
+                this.lastShot = now;
+                this.ammo--;
+
+                const angle = Math.atan2(targetY - this.y, targetX - this.x);
+                bullets.push(new Bullet(this.x, this.y, angle));
+
+                // Muzzle flash particles
+                for (let i = 0; i < 5; i++) {
+                    particles.push(new Particle(this.x, this.y, '#ffff00'));
+                }
+
+                updateHUD();
+            }
+
+            reload() {
+                if (this.isReloading || this.ammo === this.maxAmmo) return;
+
+                this.isReloading = true;
+                setTimeout(() => {
+                    this.ammo = this.maxAmmo;
+                    this.isReloading = false;
+                    updateHUD();
+                }, this.reloadTime);
+            }
+
+            takeDamage(amount) {
+                if (!this.invulnerable) {
+                    this.health -= amount;
+                    this.invulnerable = true;
+
+                    setTimeout(() => {
+                        this.invulnerable = false;
+                    }, 500);
+
+                    if (this.health <= 0) {
+                        this.health = 0;
+                        endGame();
+                    }
+
+                    updateHUD();
+                }
+            }
+
+            draw() {
+                // Aim line
+                if (!this.isReloading) {
+                    const angle = Math.atan2(mouseY - this.y, mouseX - this.x);
+                    const aimLength = 30;
+                    const aimX = this.x + Math.cos(angle) * aimLength;
+                    const aimY = this.y + Math.sin(angle) * aimLength;
+
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(aimX, aimY);
+                    ctx.strokeStyle = this.ammo > 0 ? '#ffff00' : '#ff0000';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                // Shadow
+                ctx.beginPath();
+                ctx.arc(this.x + 2, this.y + 2, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fill();
+
+                // Player body
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                if (this.invulnerable) {
+                    ctx.fillStyle = this.isDashing ? '#00ffff' : '#ffffff';
+                } else {
+                    ctx.fillStyle = '#4a90e2';
+                }
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Eye
+                ctx.beginPath();
+                ctx.arc(this.x, this.y - 3, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#000';
+                ctx.fill();
+
+                // Gun indicator
+                if (!this.isReloading && this.ammo > 0) {
+                    const angle = Math.atan2(mouseY - this.y, mouseX - this.x);
+                    const gunX = this.x + Math.cos(angle) * this.radius;
+                    const gunY = this.y + Math.sin(angle) * this.radius;
+
+                    ctx.beginPath();
+                    ctx.arc(gunX, gunY, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Bullet class
+        class Bullet {
+            constructor(x, y, angle) {
+                this.x = x;
+                this.y = y;
+                this.radius = 4;
+                this.speed = 10;
+                this.angle = angle;
+                this.vx = Math.cos(angle) * this.speed;
+                this.vy = Math.sin(angle) * this.speed;
+                this.damage = 25;
+                this.life = 100;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+
+                // Check if out of bounds
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.life = 0;
+                }
+            }
+
+            draw() {
+                // Bullet trail
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.vx * 2, this.y - this.vy * 2);
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Bullet
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffff00';
+                ctx.fill();
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        // Monster class with AI
+        class Monster {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 18;
+                this.speed = difficultySettings[difficulty].monsterSpeed;
+                this.state = 'chase'; // chase, patrol, hunt
+                this.patrolAngle = Math.random() * Math.PI * 2;
+                this.patrolTimer = 0;
+                this.huntTimer = 0;
+                this.color = '#ff4444';
+                this.health = 100;
+                this.maxHealth = 100;
+            }
+
+            update() {
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                // AI behavior
+                if (distance < 200) {
+                    // Close to player - chase
+                    this.state = 'hunt';
+                    this.huntTimer = 60;
+                    this.color = '#ff0000';
+                } else if (this.huntTimer > 0) {
+                    // Continue hunting for a bit
+                    this.state = 'hunt';
+                    this.huntTimer--;
+                    this.color = '#ff6666';
+                } else if (distance < 400) {
+                    // Medium range - smart chase
+                    this.state = 'chase';
+                    this.color = '#ff4444';
+                } else {
+                    // Far away - patrol
+                    this.state = 'patrol';
+                    this.patrolTimer++;
+                    this.color = '#aa3333';
+                }
+
+                let moveX = 0;
+                let moveY = 0;
+
+                if (this.state === 'hunt' || this.state === 'chase') {
+                    // Predict player movement
+                    const angle = Math.atan2(dy, dx);
+                    const huntSpeed = this.state === 'hunt' ? this.speed * 1.3 : this.speed;
+
+                    moveX = Math.cos(angle) * huntSpeed;
+                    moveY = Math.sin(angle) * huntSpeed;
+                } else if (this.state === 'patrol') {
+                    // Patrol in circles
+                    if (this.patrolTimer % 60 === 0) {
+                        this.patrolAngle += (Math.random() - 0.5) * Math.PI;
+                    }
+                    moveX = Math.cos(this.patrolAngle) * this.speed * 0.5;
+                    moveY = Math.sin(this.patrolAngle) * this.speed * 0.5;
+                }
+
+                this.x += moveX;
+                this.y += moveY;
+
+                // Boundary check with bounce
+                if (this.x < this.radius || this.x > canvas.width - this.radius) {
+                    this.patrolAngle = Math.PI - this.patrolAngle;
+                    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                }
+                if (this.y < this.radius || this.y > canvas.height - this.radius) {
+                    this.patrolAngle = -this.patrolAngle;
+                    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+                }
+
+                // Check collision with player
+                const collisionDist = this.radius + player.radius;
+                if (distance < collisionDist) {
+                    player.takeDamage(10);
+                    // Knockback
+                    const angle = Math.atan2(dy, dx);
+                    player.x -= Math.cos(angle) * 10;
+                    player.y -= Math.sin(angle) * 10;
+
+                    // Create hit particles
+                    for (let i = 0; i < 5; i++) {
+                        particles.push(new Particle(this.x, this.y, '#ff0000'));
+                    }
+                }
+            }
+
+            takeDamage(amount) {
+                this.health -= amount;
+
+                // Hit particles
+                for (let i = 0; i < 8; i++) {
+                    particles.push(new Particle(this.x, this.y, '#ff0000'));
+                }
+
+                return this.health <= 0;
+            }
+
+            draw() {
+                // Vision radius (when hunting)
+                if (this.state === 'hunt') {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 200, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.05)';
+                    ctx.fill();
+                }
+
+                // Shadow
+                ctx.beginPath();
+                ctx.arc(this.x + 3, this.y + 3, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fill();
+
+                // Monster body
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Eyes
+                const eyeOffset = 6;
+                const pupilOffset = this.state === 'hunt' ? 3 : 2;
+
+                // Left eye
+                ctx.beginPath();
+                ctx.arc(this.x - eyeOffset, this.y - 5, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.x - eyeOffset + pupilOffset, this.y - 5, 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#000';
+                ctx.fill();
+
+                // Right eye
+                ctx.beginPath();
+                ctx.arc(this.x + eyeOffset, this.y - 5, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.x + eyeOffset + pupilOffset, this.y - 5, 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#000';
+                ctx.fill();
+
+                // Mouth (more aggressive when hunting)
+                ctx.beginPath();
+                if (this.state === 'hunt') {
+                    ctx.arc(this.x, this.y + 5, 8, 0.2, Math.PI - 0.2);
+                } else {
+                    ctx.arc(this.x, this.y + 5, 6, 0.3, Math.PI - 0.3);
+                }
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Health bar
+                const barWidth = 40;
+                const barHeight = 4;
+                const barX = this.x - barWidth / 2;
+                const barY = this.y - this.radius - 10;
+
+                // Background
+                ctx.fillStyle = '#333';
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+
+                // Health fill
+                const healthWidth = (this.health / this.maxHealth) * barWidth;
+                ctx.fillStyle = this.health > 50 ? '#00ff00' : this.health > 25 ? '#ffaa00' : '#ff0000';
+                ctx.fillRect(barX, barY, healthWidth, barHeight);
+
+                // Border
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(barX, barY, barWidth, barHeight);
+            }
+        }
+
+        // Particle class
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 5;
+                this.vy = (Math.random() - 0.5) * 5;
+                this.radius = Math.random() * 3 + 2;
+                this.color = color;
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.01;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                this.radius *= 0.98;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // Spawn monster at edge
+        function spawnMonster() {
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+
+            switch(side) {
+                case 0: // Top
+                    x = Math.random() * canvas.width;
+                    y = -20;
+                    break;
+                case 1: // Right
+                    x = canvas.width + 20;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // Bottom
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 20;
+                    break;
+                case 3: // Left
+                    x = -20;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+
+            monsters.push(new Monster(x, y));
+            updateHUD();
+        }
+
+        // Initialize game
+        function initGame() {
+            difficulty = difficultySelect.value;
+            player = new Player(canvas.width / 2, canvas.height / 2);
+            monsters = [];
+            particles = [];
+            bullets = [];
+            score = 0;
+            kills = 0;
+            startTime = Date.now();
+
+            // Spawn initial monster
+            spawnMonster();
+
+            // Spawn new monsters periodically
+            monsterSpawnInterval = setInterval(() => {
+                if (gameRunning) {
+                    spawnMonster();
+                }
+            }, difficultySettings[difficulty].spawnRate);
+
+            updateHUD();
+        }
+
+        // Update HUD
+        function updateHUD() {
+            healthFill.style.width = player.health + '%';
+            scoreDisplay.textContent = score;
+            monsterCountDisplay.textContent = monsters.length;
+            killsDisplay.textContent = kills;
+            ammoFill.style.width = (player.ammo / player.maxAmmo) * 100 + '%';
+            ammoText.textContent = `${player.ammo} / ${player.maxAmmo}`;
+            if (player.isReloading) {
+                ammoText.textContent = 'RELOADING...';
+            }
+        }
+
+        // Update time display
+        function updateTime() {
+            if (!gameRunning) return;
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            timeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        setInterval(updateTime, 1000);
+
+        // Game loop
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            // Clear canvas
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Update and draw particles
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            // Update and draw bullets
+            bullets = bullets.filter(b => b.life > 0);
+            bullets.forEach(b => {
+                b.update();
+
+                // Check collision with monsters
+                monsters.forEach((m, index) => {
+                    const dx = b.x - m.x;
+                    const dy = b.y - m.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < m.radius + b.radius) {
+                        const isDead = m.takeDamage(b.damage);
+                        b.life = 0;
+
+                        if (isDead) {
+                            monsters.splice(index, 1);
+                            kills++;
+                            score += 100;
+
+                            // Death explosion particles
+                            for (let i = 0; i < 20; i++) {
+                                particles.push(new Particle(m.x, m.y, '#ff4444'));
+                            }
+                        }
+                    }
+                });
+
+                b.draw();
+            });
+
+            // Update and draw monsters
+            monsters.forEach(m => {
+                m.update();
+                m.draw();
+            });
+
+            // Update and draw player
+            player.update();
+            player.draw();
+
+            // Update score
+            score = Math.floor((Date.now() - startTime) / 100) + (kills * 100);
+            updateHUD();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // End game
+        function endGame() {
+            gameRunning = false;
+            clearInterval(monsterSpawnInterval);
+
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+
+            finalScoreDisplay.textContent = score;
+            finalTimeDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            gameOverScreen.classList.add('show');
+        }
+
+        // Start game
+        startBtn.addEventListener('click', () => {
+            startScreen.classList.add('hide');
+            gameRunning = true;
+            initGame();
+            gameLoop();
+        });
+
+        // Restart game
+        restartBtn.addEventListener('click', () => {
+            gameOverScreen.classList.remove('show');
+            gameRunning = true;
+            initGame();
+            gameLoop();
+        });
+
+        // Mouse tracking
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
+        // Mouse shooting
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            player.shoot(clickX, clickY);
+        });
+
+        // Keyboard controls
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+
+            if (e.key === ' ' && gameRunning) {
+                e.preventDefault();
+                player.dash();
+            }
+
+            if ((e.key === 'r' || e.key === 'R') && gameRunning) {
+                e.preventDefault();
+                player.reload();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - Public Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="app-logo">
+                <div class="logo-icon">💬</div>
+                <h1>ChatApp</h1>
+                <p class="tagline">Connect and chat in real-time</p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+                <button class="tab-btn" onclick="switchTab('signup')">Create Account</button>
+            </div>
+
+            <div id="loginForm" class="form-section active">
+                <h2>Welcome Back!</h2>
+                <div id="loginMessage" style="background: #4CAF50; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: bold;"></div>
+                <form id="loginFormElement">
+                    <div class="input-group">
+                        <label for="loginUsername">Username</label>
+                        <input type="text" id="loginUsername" placeholder="Enter your username" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="loginPassword" placeholder="Enter your password" required minlength="6">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('loginPassword', this)">👁️</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="loginBtn">Login</button>
+                </form>
+            </div>
+
+            <div id="signupForm" class="form-section">
+                <h2>Create Account</h2>
+                <div id="signupMessage" style="background: #4CAF50; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: bold;"></div>
+                <form id="signupFormElement">
+                    <div class="input-group">
+                        <label for="signupUsername">Username</label>
+                        <input type="text" id="signupUsername" placeholder="Choose a username" required minlength="3">
+                    </div>
+                    <div class="input-group">
+                        <label for="signupPassword">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="signupPassword" placeholder="At least 6 characters" required minlength="6">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('signupPassword', this)">👁️</button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="confirmPassword" placeholder="Re-enter password" required minlength="6">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)">👁️</button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="signupAvatar">Choose Avatar</label>
+                        <div class="avatar-selector" id="avatarSelector">
+                            <div class="avatar-option selected" data-avatar="😀">😀</div>
+                            <div class="avatar-option" data-avatar="😎">😎</div>
+                            <div class="avatar-option" data-avatar="🤩">🤩</div>
+                            <div class="avatar-option" data-avatar="🥳">🥳</div>
+                            <div class="avatar-option" data-avatar="😺">😺</div>
+                            <div class="avatar-option" data-avatar="🦊">🦊</div>
+                            <div class="avatar-option" data-avatar="🐼">🐼</div>
+                            <div class="avatar-option" data-avatar="🦄">🦄</div>
+                        </div>
+                        <input type="hidden" id="selectedAvatar" value="😀" required>
+                    </div>
+                    <button type="submit" class="btn-primary" id="signupBtn">Create Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // YOUR REAL Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAM9AVeKv8po7D16h6XM422Eh0heq3hAW0",
+            authDomain: "chat-app-with-claude.firebaseapp.com",
+            databaseURL: "https://chat-app-with-claude-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "chat-app-with-claude",
+            storageBucket: "chat-app-with-claude.firebasestorage.app",
+            messagingSenderId: "163903134612",
+            appId: "1:163903134612:web:8317fa2bc619563d0b8d81"
+        };
+
+        let database;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('✅ Firebase connected successfully!');
+        } catch (error) {
+            console.error('❌ Firebase error:', error);
+            alert('Error connecting to Firebase: ' + error.message);
+        }
+
+        function switchTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const tabs = document.querySelectorAll('.tab-btn');
+
+            tabs.forEach(btn => btn.classList.remove('active'));
+
+            if (tab === 'login') {
+                loginForm.classList.add('active');
+                signupForm.classList.remove('active');
+                tabs[0].classList.add('active');
+            } else {
+                loginForm.classList.remove('active');
+                signupForm.classList.add('active');
+                tabs[1].classList.add('active');
+            }
+        }
+
+        // Simple password hashing function
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        // Toggle password visibility
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                button.textContent = '👁️';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Avatar selection
+            const avatarOptions = document.querySelectorAll('.avatar-option');
+            avatarOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const emoji = this.getAttribute('data-avatar');
+                    document.getElementById('selectedAvatar').value = emoji;
+
+                    avatarOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+
+            // Login form
+            const loginFormElement = document.getElementById('loginFormElement');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginMessage = document.getElementById('loginMessage');
+
+            loginFormElement.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                loginMessage.style.display = 'block';
+                loginMessage.textContent = '✓ Checking credentials...';
+                loginBtn.disabled = true;
+
+                const username = document.getElementById('loginUsername').value.trim();
+                const password = document.getElementById('loginPassword').value;
+
+                if (!username || !password) {
+                    loginMessage.textContent = '⚠ Please enter username and password';
+                    loginMessage.style.background = '#ff9800';
+                    loginBtn.disabled = false;
+                    return;
+                }
+
+                try {
+                    const hashedPassword = await hashPassword(password);
+
+                    const snapshot = await database.ref('users').once('value');
+                    const users = snapshot.val() || {};
+                    let userFound = null;
+
+                    for (let userId in users) {
+                        if (users[userId].username.toLowerCase() === username.toLowerCase()) {
+                            userFound = users[userId];
+                            break;
+                        }
+                    }
+
+                    if (!userFound) {
+                        loginMessage.textContent = '❌ Username not found. Please create an account!';
+                        loginMessage.style.background = '#f44336';
+                        loginBtn.disabled = false;
+                        return;
+                    }
+
+                    if (userFound.password !== hashedPassword) {
+                        loginMessage.textContent = '❌ Incorrect password!';
+                        loginMessage.style.background = '#f44336';
+                        loginBtn.disabled = false;
+                        return;
+                    }
+
+                    loginMessage.textContent = '✓ Login successful!';
+                    // Don't store password in localStorage
+                    const userDataForStorage = {
+                        id: userFound.id,
+                        username: userFound.username,
+                        avatar: userFound.avatar
+                    };
+                    localStorage.setItem('chatapp_user', JSON.stringify(userDataForStorage));
+
+                    // Request notification permission
+                    requestNotificationPermission();
+                } catch (error) {
+                    loginMessage.textContent = '❌ Error: ' + error.message;
+                    loginMessage.style.background = '#f44336';
+                    loginBtn.disabled = false;
+                }
+            });
+
+            // Signup form
+            const signupFormElement = document.getElementById('signupFormElement');
+            const signupBtn = document.getElementById('signupBtn');
+            const signupMessage = document.getElementById('signupMessage');
+
+            signupFormElement.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                signupMessage.style.display = 'block';
+                signupMessage.textContent = '✓ Creating account...';
+                signupBtn.disabled = true;
+
+                const username = document.getElementById('signupUsername').value.trim();
+                const password = document.getElementById('signupPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const avatar = document.getElementById('selectedAvatar').value;
+
+                if (!username || username.length < 3) {
+                    signupMessage.textContent = '⚠ Username must be at least 3 characters';
+                    signupMessage.style.background = '#ff9800';
+                    signupBtn.disabled = false;
+                    return;
+                }
+
+                if (password.length < 6) {
+                    signupMessage.textContent = '⚠ Password must be at least 6 characters';
+                    signupMessage.style.background = '#ff9800';
+                    signupBtn.disabled = false;
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    signupMessage.textContent = '⚠ Passwords do not match!';
+                    signupMessage.style.background = '#ff9800';
+                    signupBtn.disabled = false;
+                    return;
+                }
+
+                signupMessage.textContent = '⏳ Checking if username is available...';
+
+                try {
+                    const snapshot = await database.ref('users').once('value');
+                    const users = snapshot.val() || {};
+                    let usernameExists = false;
+
+                    for (let userId in users) {
+                        if (users[userId].username.toLowerCase() === username.toLowerCase()) {
+                            usernameExists = true;
+                            break;
+                        }
+                    }
+
+                    if (usernameExists) {
+                        signupMessage.textContent = '❌ Username already taken!';
+                        signupMessage.style.background = '#f44336';
+                        signupBtn.disabled = false;
+                        return;
+                    }
+
+                    signupMessage.textContent = '⏳ Creating your account...';
+
+                    const hashedPassword = await hashPassword(password);
+                    const newUserRef = database.ref('users').push();
+                    const userData = {
+                        id: newUserRef.key,
+                        username: username,
+                        password: hashedPassword,
+                        avatar: avatar,
+                        joinedAt: Date.now()
+                    };
+
+                    await newUserRef.set(userData);
+
+                    signupMessage.textContent = '✅ Account created!';
+                    // Don't store password in localStorage
+                    const userDataForStorage = {
+                        id: userData.id,
+                        username: userData.username,
+                        avatar: userData.avatar
+                    };
+                    localStorage.setItem('chatapp_user', JSON.stringify(userDataForStorage));
+
+                    // Request notification permission
+                    requestNotificationPermission();
+                } catch (error) {
+                    signupMessage.textContent = '❌ Error: ' + error.message;
+                    signupMessage.style.background = '#f44336';
+                    signupBtn.disabled = false;
+                }
+            });
+        });
+
+        // Notification Permission Request
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                // Browser doesn't support notifications, just redirect
+                setTimeout(() => {
+                    window.location.href = 'chat.html';
+                }, 1000);
+                return;
+            }
+
+            // Check if permission is already granted
+            if (Notification.permission === "granted") {
+                localStorage.setItem('chatapp_notifications_allowed', 'true');
+                setTimeout(() => {
+                    window.location.href = 'chat.html';
+                }, 1000);
+                return;
+            }
+
+            // Show custom permission dialog
+            showNotificationPermissionDialog();
+        }
+
+        function showNotificationPermissionDialog() {
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s;
+            `;
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: white;
+                border-radius: 20px;
+                padding: 40px;
+                max-width: 450px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                animation: slideDown 0.3s;
+            `;
+
+            dialog.innerHTML = `
+                <div style="font-size: 64px; margin-bottom: 20px;">🔔</div>
+                <h2 style="color: #667eea; font-size: 28px; margin-bottom: 15px;">Enable Notifications?</h2>
+                <p style="color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                    Get notified when you receive new messages. You can change this later in your browser settings.
+                </p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="allowNotifications" style="
+                        flex: 1;
+                        padding: 14px 24px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                    ">Allow</button>
+                    <button id="denyNotifications" style="
+                        flex: 1;
+                        padding: 14px 24px;
+                        background: #f0f0f0;
+                        color: #666;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                    ">Not Now</button>
+                </div>
+            `;
+
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            // Handle Allow button
+            document.getElementById('allowNotifications').addEventListener('click', async () => {
+                try {
+                    const permission = await Notification.requestPermission();
+                    if (permission === "granted") {
+                        localStorage.setItem('chatapp_notifications_allowed', 'true');
+                    } else {
+                        localStorage.setItem('chatapp_notifications_allowed', 'false');
+                    }
+                } catch (error) {
+                    console.error('Error requesting notification permission:', error);
+                    localStorage.setItem('chatapp_notifications_allowed', 'false');
+                }
+                document.body.removeChild(overlay);
+                setTimeout(() => {
+                    window.location.href = 'chat.html';
+                }, 500);
+            });
+
+            // Handle Deny button
+            document.getElementById('denyNotifications').addEventListener('click', () => {
+                localStorage.setItem('chatapp_notifications_allowed', 'false');
+                document.body.removeChild(overlay);
+                setTimeout(() => {
+                    window.location.href = 'chat.html';
+                }, 500);
+            });
+        }
+    </script>
+</body>
+</html>

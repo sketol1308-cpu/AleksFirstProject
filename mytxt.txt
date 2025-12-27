@@ -1,0 +1,7 @@
+To add a new project branch in the future, you can:
+  cd Projects
+  git checkout -b project-name
+  # Add your project files
+  git add .
+  git commit -m "Add project-name"
+  git push -u origin project-name

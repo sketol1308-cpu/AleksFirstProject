@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Reset Database</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .admin-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-bottom: 10px;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+        #message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-card">
+        <h1>Admin - Database Reset</h1>
+
+        <div class="warning">
+            <strong>Warning!</strong> This will permanently delete:
+            <ul>
+                <li>All user accounts</li>
+                <li>All public messages</li>
+                <li>All private messages</li>
+                <li>All online status data</li>
+            </ul>
+            This action cannot be undone!
+        </div>
+
+        <button class="btn btn-danger" onclick="deleteAllData()">Delete All Data</button>
+        <button class="btn btn-success" onclick="window.location.href='index.html'">Go Back to Login</button>
+
+        <div id="message"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAM9AVeKv8po7D16h6XM422Eh0heq3hAW0",
+            authDomain: "chat-app-with-claude.firebaseapp.com",
+            databaseURL: "https://chat-app-with-claude-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "chat-app-with-claude",
+            storageBucket: "chat-app-with-claude.firebasestorage.app",
+            messagingSenderId: "163903134612",
+            appId: "1:163903134612:web:8317fa2bc619563d0b8d81"
+        };
+
+        let database;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('✅ Firebase connected!');
+        } catch (error) {
+            console.error('❌ Firebase error:', error);
+            alert('Error connecting to Firebase!');
+        }
+
+        async function deleteAllData() {
+            const confirmed = confirm('Are you ABSOLUTELY SURE you want to delete all data? This cannot be undone!');
+
+            if (!confirmed) {
+                return;
+            }
+
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'block';
+            messageDiv.className = 'info';
+            messageDiv.textContent = '⏳ Deleting all data...';
+
+            try {
+                // Delete all users
+                await database.ref('users').remove();
+                console.log('✓ Deleted all users');
+
+                // Delete all public messages
+                await database.ref('messages').remove();
+                console.log('✓ Deleted all public messages');
+
+                // Delete all private messages
+                await database.ref('privateMessages').remove();
+                console.log('✓ Deleted all private messages');
+
+                // Delete all online status
+                await database.ref('online').remove();
+                console.log('✓ Deleted all online status');
+
+                // Clear localStorage
+                localStorage.removeItem('chatapp_user');
+                console.log('✓ Cleared local storage');
+
+                messageDiv.className = 'success';
+                messageDiv.textContent = '✅ All data deleted successfully! The database is now clean. You can create new accounts with passwords.';
+
+            } catch (error) {
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = '#f8d7da';
+                messageDiv.style.color = '#721c24';
+                messageDiv.textContent = '❌ Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

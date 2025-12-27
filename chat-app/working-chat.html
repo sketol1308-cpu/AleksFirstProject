@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - Messages</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="user-info">
+                <div class="user-avatar" id="currentUserAvatar">😀</div>
+                <div class="user-details">
+                    <h2 id="currentUsername">User</h2>
+                    <p>Online now</p>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="online-users">
+            <h3>ALL USERS (<span id="userCount">0</span>)</h3>
+            <div class="users-list" id="usersList"></div>
+        </div>
+
+        <div class="messages-area" id="messagesArea">
+            <div class="empty-state">
+                <div class="empty-icon">💬</div>
+                <p>Start chatting with others!</p>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-container">
+                <input
+                    type="text"
+                    class="message-input"
+                    id="messageInput"
+                    placeholder="Type a message..."
+                    maxlength="500"
+                    autocomplete="off"
+                >
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('chatapp_current_user'));
+
+        if (!currentUser) {
+            window.location.href = 'working-index.html';
+        }
+
+        document.getElementById('currentUserAvatar').textContent = currentUser.avatar;
+        document.getElementById('currentUsername').textContent = currentUser.username;
+
+        function getAllUsers() {
+            const users = localStorage.getItem('chatapp_all_users');
+            return users ? JSON.parse(users) : [];
+        }
+
+        function getAllMessages() {
+            const messages = localStorage.getItem('chatapp_messages');
+            return messages ? JSON.parse(messages) : [];
+        }
+
+        function saveMessage(message) {
+            const messages = getAllMessages();
+            messages.push(message);
+            localStorage.setItem('chatapp_messages', JSON.stringify(messages));
+            displayMessages();
+        }
+
+        function displayUsers() {
+            const allUsers = getAllUsers();
+            const usersList = document.getElementById('usersList');
+            const userCount = document.getElementById('userCount');
+
+            const otherUsers = allUsers.filter(u => u.id !== currentUser.id);
+            userCount.textContent = otherUsers.length;
+
+            if (otherUsers.length === 0) {
+                usersList.innerHTML = '<div style="color: #999; padding: 10px;">No other users yet</div>';
+                return;
+            }
+
+            usersList.innerHTML = otherUsers.map(user => `
+                <div class="online-user">
+                    <div class="online-user-avatar">${user.avatar}</div>
+                    <div class="online-user-name">${user.username}</div>
+                </div>
+            `).join('');
+        }
+
+        function displayMessages() {
+            const messages = getAllMessages();
+            const messagesArea = document.getElementById('messagesArea');
+
+            if (messages.length === 0) {
+                messagesArea.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">💬</div>
+                        <p>Start chatting with others!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            messagesArea.innerHTML = messages.map(msg => {
+                const isOwn = msg.userId === currentUser.id;
+                const messageClass = isOwn ? 'message own' : 'message';
+
+                return `
+                    <div class="${messageClass}">
+                        <div class="message-avatar">${msg.avatar}</div>
+                        <div class="message-content">
+                            <div class="message-header">${msg.username}</div>
+                            <div class="message-bubble">${escapeHtml(msg.text)}</div>
+                            <div class="message-time">${formatTime(msg.timestamp)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const text = messageInput.value.trim();
+
+            if (!text) return;
+
+            const message = {
+                userId: currentUser.id,
+                username: currentUser.username,
+                avatar: currentUser.avatar,
+                text: text,
+                timestamp: Date.now()
+            };
+
+            saveMessage(message);
+            messageInput.value = '';
+            messageInput.focus();
+        }
+
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('chatapp_current_user');
+                window.location.href = 'working-index.html';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Listen for storage changes (messages from other tabs)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'chatapp_messages') {
+                displayMessages();
+            }
+            if (e.key === 'chatapp_all_users') {
+                displayUsers();
+            }
+        });
+
+        // Initial display
+        displayUsers();
+        displayMessages();
+
+        // Refresh messages every 2 seconds
+        setInterval(() => {
+            displayMessages();
+        }, 2000);
+    </script>
+</body>
+</html>
