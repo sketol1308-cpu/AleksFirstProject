@@ -151,6 +151,7 @@
                 <button class="emoji-btn" id="emojiBtn" onclick="toggleEmojiPicker()">😊</button>
                 <button class="image-btn" id="imageBtn" onclick="document.getElementById('imageInput').click()" title="Send Image/GIF">📷</button>
                 <button class="gif-btn" id="gifBtn" onclick="toggleGifPicker()" title="Search GIFs">GIF</button>
+                <button class="gift-btn" id="giftBtn" onclick="toggleGiftPicker()" title="Send a Gift">🎁</button>
                 <input type="file" id="imageInput" accept="image/*,image/gif" style="display: none;">
                 <input
                     type="text"
@@ -172,6 +173,15 @@
                 <div class="gif-grid" id="gifGrid">
                     <div class="gif-loading">Loading trending GIFs...</div>
                 </div>
+            </div>
+
+            <!-- Gift Picker -->
+            <div class="gift-picker" id="giftPicker" style="display: none;">
+                <div class="gift-picker-header">
+                    <span class="gift-picker-title">Send a Gift</span>
+                    <button class="gift-close-btn" onclick="toggleGiftPicker()">✕</button>
+                </div>
+                <div class="gift-grid" id="giftGrid"></div>
             </div>
         </div>
     </div>
@@ -576,7 +586,12 @@
                     const latestMsg = newMessagesFromOthers[newMessagesFromOthers.length - 1];
                     const username = latestMsg.username || 'Unknown User';
                     const avatar = latestMsg.avatar || '😀';
-                    const text = latestMsg.text || (latestMsg.imageData ? '📷 Image' : '');
+                    let text = latestMsg.text || '';
+                    if (latestMsg.type === 'image') {
+                        text = '📷 Image';
+                    } else if (latestMsg.type === 'gift' && latestMsg.gift) {
+                        text = `${latestMsg.gift.emoji} Sent a ${latestMsg.gift.name}`;
+                    }
                     showBrowserNotification(username, text, avatar);
                 }
 
@@ -597,8 +612,8 @@
                 });
 
                 messagesArea.innerHTML = messagesList.map(msg => {
-                // Skip messages with missing critical data (text OR image)
-                if (!msg || !msg.messageId || (!msg.text && !msg.imageData)) {
+                // Skip messages with missing critical data (text, image, or gift)
+                if (!msg || !msg.messageId || (!msg.text && !msg.imageData && !msg.gift)) {
                     console.warn('Skipping invalid message:', msg);
                     return '';
                 }
@@ -656,9 +671,18 @@
                     }
                 }
 
-                // Build message content (text or image)
+                // Build message content (text, image, or gift)
                 let messageContent = '';
-                if (msg.type === 'image' && msg.imageData) {
+                if (msg.type === 'gift' && msg.gift) {
+                    messageContent = `
+                        <div class="gift-message">
+                            <div class="gift-box">
+                                <div class="gift-emoji-large">${msg.gift.emoji}</div>
+                                <div class="gift-label">${msg.gift.name}</div>
+                            </div>
+                        </div>
+                    `;
+                } else if (msg.type === 'image' && msg.imageData) {
                     messageContent = `
                         <div class="image-message">
                             <img src="${msg.imageData}" alt="${escapeHtml(msg.imageName || 'image')}" class="message-image" onclick="openImageModal('${msg.messageId}')">
@@ -1798,6 +1822,110 @@
                 alert('Error loading GIF: ' + error.message);
                 messageInput.placeholder = originalPlaceholder;
                 messageInput.disabled = false;
+            }
+        }
+
+        // Gift Picker functionality
+        const gifts = [
+            { emoji: '❤️', name: 'Heart' },
+            { emoji: '💝', name: 'Gift Heart' },
+            { emoji: '🌹', name: 'Rose' },
+            { emoji: '💐', name: 'Bouquet' },
+            { emoji: '🎂', name: 'Birthday Cake' },
+            { emoji: '🍰', name: 'Cake' },
+            { emoji: '🎁', name: 'Gift' },
+            { emoji: '🏆', name: 'Trophy' },
+            { emoji: '👑', name: 'Crown' },
+            { emoji: '💎', name: 'Diamond' },
+            { emoji: '⭐', name: 'Star' },
+            { emoji: '✨', name: 'Sparkles' },
+            { emoji: '🎉', name: 'Party Popper' },
+            { emoji: '🎊', name: 'Confetti Ball' },
+            { emoji: '🌟', name: 'Glowing Star' },
+            { emoji: '💖', name: 'Sparkling Heart' },
+            { emoji: '🔥', name: 'Fire' },
+            { emoji: '☀️', name: 'Sun' },
+            { emoji: '🌈', name: 'Rainbow' },
+            { emoji: '🦋', name: 'Butterfly' }
+        ];
+
+        let giftPickerOpen = false;
+
+        function toggleGiftPicker() {
+            const giftPicker = document.getElementById('giftPicker');
+            giftPickerOpen = !giftPickerOpen;
+
+            if (giftPickerOpen) {
+                giftPicker.style.display = 'block';
+                loadGifts();
+            } else {
+                giftPicker.style.display = 'none';
+            }
+        }
+
+        // Close gift picker when clicking outside
+        document.addEventListener('click', function(e) {
+            const giftPicker = document.getElementById('giftPicker');
+            const giftBtn = document.getElementById('giftBtn');
+            if (giftPickerOpen && !giftPicker.contains(e.target) && e.target !== giftBtn) {
+                toggleGiftPicker();
+            }
+        });
+
+        function loadGifts() {
+            const giftGrid = document.getElementById('giftGrid');
+            giftGrid.innerHTML = '';
+
+            gifts.forEach(gift => {
+                const giftItem = document.createElement('div');
+                giftItem.className = 'gift-item';
+                giftItem.innerHTML = `
+                    <div class="gift-emoji">${gift.emoji}</div>
+                    <div class="gift-name">${gift.name}</div>
+                `;
+                giftItem.onclick = () => sendGift(gift);
+                giftGrid.appendChild(giftItem);
+            });
+        }
+
+        async function sendGift(gift) {
+            if (!currentUser) {
+                alert('You must be logged in to send gifts!');
+                return;
+            }
+
+            toggleGiftPicker();
+
+            try {
+                const message = {
+                    userId: currentUser.id,
+                    username: currentUser.username,
+                    avatar: currentUser.avatar,
+                    gift: {
+                        emoji: gift.emoji,
+                        name: gift.name
+                    },
+                    timestamp: Date.now(),
+                    type: 'gift'
+                };
+
+                let messagePath;
+                if (chatMode === 'public') {
+                    messagePath = 'messages';
+                } else if (chatMode === 'private' && selectedUser) {
+                    const chatId = getChatId(currentUser.id, selectedUser.id);
+                    messagePath = 'privateMessages/' + chatId;
+                } else {
+                    alert('Cannot send gift. No chat selected.');
+                    return;
+                }
+
+                await database.ref(messagePath).push(message);
+                console.log('Gift sent successfully!');
+
+            } catch (error) {
+                console.error('Error sending gift:', error);
+                alert('Error sending gift: ' + error.message);
             }
         }
 
