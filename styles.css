@@ -671,9 +671,107 @@ body {
     position: relative;
 }
 
+/* Mobile optimizations for login page */
 @media (max-width: 768px) {
-    .message-content {
-        max-width: 75%;
+    .auth-container {
+        padding: 10px;
+    }
+
+    .auth-card {
+        padding: 30px 25px;
+    }
+
+    .logo-icon {
+        font-size: 56px;
+    }
+
+    .app-logo h1 {
+        font-size: 32px;
+    }
+
+    .tagline {
+        font-size: 14px;
+    }
+
+    .tab-btn {
+        padding: 14px;
+        font-size: 16px;
+    }
+
+    .form-section h2 {
+        font-size: 22px;
+    }
+
+    .input-group label {
+        font-size: 15px;
+    }
+
+    .input-group input[type="text"],
+    .input-group input[type="password"] {
+        padding: 14px 18px;
+        font-size: 16px;
+    }
+
+    .password-input-wrapper input {
+        padding-right: 55px;
+    }
+
+    .toggle-password {
+        font-size: 24px;
+        padding: 10px;
+    }
+
+    .avatar-selector {
+        gap: 12px;
+    }
+
+    .avatar-option {
+        font-size: 36px;
+        padding: 10px;
+    }
+
+    .btn-primary {
+        padding: 16px;
+        font-size: 17px;
+    }
+}
+
+/* Chat page mobile optimizations */
+@media (max-width: 768px) {
+    body {
+        font-size: 16px;
+    }
+
+    .chat-header {
+        padding: 15px;
+    }
+
+    .user-avatar {
+        font-size: 36px;
+        width: 50px;
+        height: 50px;
+    }
+
+    .user-details h2 {
+        font-size: 20px;
+    }
+
+    .user-details p {
+        font-size: 14px;
+    }
+
+    .back-btn, .logout-btn {
+        padding: 10px 16px;
+        font-size: 15px;
+    }
+
+    .online-users {
+        padding: 12px 15px;
+    }
+
+    .online-users h3 {
+        font-size: 13px;
+        margin-bottom: 8px;
     }
 
     .users-list {
@@ -681,7 +779,76 @@ body {
     }
 
     .online-user {
-        padding: 6px 12px;
+        padding: 10px 14px;
+        min-height: 50px;
+    }
+
+    .online-user-avatar {
+        font-size: 28px;
+    }
+
+    .online-user-name {
+        font-size: 15px;
+    }
+
+    .messages-area {
+        padding: 15px;
+        gap: 12px;
+    }
+
+    .message-content {
+        max-width: 75%;
+    }
+
+    .message-avatar {
+        font-size: 28px;
+        width: 36px;
+        height: 36px;
+    }
+
+    .message-header {
+        font-size: 13px;
+    }
+
+    .message-bubble {
+        padding: 14px 16px;
+        font-size: 16px;
+        line-height: 1.5;
+    }
+
+    .message-time {
+        font-size: 12px;
+    }
+
+    .typing-indicator {
+        padding: 12px 15px;
+        font-size: 15px;
+    }
+
+    .typing-dots .dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .input-area {
+        padding: 15px;
+    }
+
+    .message-input {
+        padding: 16px 18px;
+        font-size: 16px;
+    }
+
+    .send-btn {
+        padding: 16px 24px;
+        font-size: 16px;
+        min-width: 80px;
+    }
+
+    .emoji-btn {
+        padding: 12px 14px;
+        font-size: 26px;
+        min-width: 50px;
     }
 
     .emoji-picker {
@@ -697,12 +864,20 @@ body {
     }
 
     .emoji-item {
-        font-size: 24px;
-        padding: 6px;
+        font-size: 28px;
+        padding: 8px;
     }
 
     .emoji-category {
-        font-size: 20px;
-        padding: 6px;
+        font-size: 22px;
+        padding: 8px;
+    }
+
+    .empty-state {
+        font-size: 16px;
+    }
+
+    .empty-icon {
+        font-size: 56px;
     }
 }
