@@ -95,6 +95,18 @@
                     <div class="current-avatar-display">
                         <div class="big-avatar" id="currentAvatarDisplay">😀</div>
                     </div>
+
+                    <!-- Avatar Type Tabs -->
+                    <div class="avatar-type-tabs">
+                        <button class="avatar-type-tab active" onclick="switchAvatarType('emoji')" id="emojiTab">
+                            😀 Emoji
+                        </button>
+                        <button class="avatar-type-tab" onclick="switchAvatarType('image')" id="imageTab">
+                            📷 Upload Photo
+                        </button>
+                    </div>
+
+                    <!-- Emoji Selector -->
                     <div class="avatar-selector" id="profileAvatarSelector">
                         <div class="avatar-option" data-avatar="😀">😀</div>
                         <div class="avatar-option" data-avatar="😎">😎</div>
@@ -105,6 +117,21 @@
                         <div class="avatar-option" data-avatar="🐼">🐼</div>
                         <div class="avatar-option" data-avatar="🦄">🦄</div>
                     </div>
+
+                    <!-- Image Upload Section -->
+                    <div class="avatar-upload-section" id="avatarUploadSection" style="display: none;">
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">📤</div>
+                            <p class="upload-text">Click to upload or drag & drop</p>
+                            <p class="upload-hint">PNG, JPG, GIF up to 2MB</p>
+                            <input type="file" id="avatarFileInput" accept="image/png,image/jpeg,image/jpg,image/gif" style="display: none;">
+                        </div>
+                        <div class="image-preview" id="imagePreview" style="display: none;">
+                            <img id="previewImage" src="" alt="Preview">
+                            <button class="remove-image-btn" onclick="removeUploadedImage()">✕ Remove</button>
+                        </div>
+                    </div>
+
                     <button class="save-profile-btn" onclick="updateAvatar()">Save Avatar</button>
                 </div>
 
@@ -193,18 +220,32 @@
     <!-- Call Modal -->
     <div class="call-modal" id="callModal" style="display: none;">
         <div class="call-content">
-            <div class="call-avatar" id="callAvatar">😀</div>
+            <div class="call-avatar-wrapper">
+                <div class="call-avatar-ring"></div>
+                <div class="call-avatar-ring-2"></div>
+                <div class="call-avatar" id="callAvatar">😀</div>
+            </div>
+
             <h2 class="call-username" id="callUsername">Username</h2>
             <p class="call-status" id="callStatus">Calling...</p>
 
             <div class="call-timer" id="callTimer" style="display: none;">00:00</div>
 
+            <!-- Audio wave visualization -->
+            <div class="audio-waves" id="audioWaves" style="display: none;">
+                <div class="audio-wave"></div>
+                <div class="audio-wave"></div>
+                <div class="audio-wave"></div>
+                <div class="audio-wave"></div>
+                <div class="audio-wave"></div>
+                <div class="audio-wave"></div>
+                <div class="audio-wave"></div>
+                <div class="audio-wave"></div>
+            </div>
+
             <div class="call-controls">
                 <button class="call-control-btn mute-btn" id="muteBtn" onclick="toggleMute()" style="display: none;" title="Mute">
                     <span id="muteIcon">🎤</span>
-                </button>
-                <button class="call-control-btn video-btn" id="videoBtn" onclick="toggleVideo()" style="display: none;" title="Toggle Video">
-                    <span id="videoIcon">📹</span>
                 </button>
                 <button class="call-control-btn end-btn" id="endBtn" onclick="endCall()">
                     📞
@@ -222,16 +263,26 @@
     <!-- Incoming Call Modal -->
     <div class="incoming-call-modal" id="incomingCallModal" style="display: none;">
         <div class="incoming-call-content">
-            <div class="call-avatar" id="incomingCallAvatar">😀</div>
+            <div class="call-avatar-wrapper">
+                <div class="call-avatar-ring incoming-ring"></div>
+                <div class="call-avatar-ring-2 incoming-ring-2"></div>
+                <div class="call-avatar incoming-avatar" id="incomingCallAvatar">😀</div>
+            </div>
+
             <h2 class="call-username" id="incomingCallUsername">Username</h2>
-            <p class="call-status">Incoming Call...</p>
+            <p class="call-status incoming-status">
+                <span class="ringing-icon">📞</span>
+                Incoming Call...
+            </p>
 
             <div class="incoming-call-actions">
                 <button class="accept-call-btn" onclick="acceptCall()">
-                    📞 Accept
+                    <span class="btn-icon">✓</span>
+                    <span class="btn-text">Accept</span>
                 </button>
                 <button class="reject-call-btn" onclick="rejectCall()">
-                    ✕ Reject
+                    <span class="btn-icon">✕</span>
+                    <span class="btn-text">Decline</span>
                 </button>
             </div>
         </div>
@@ -264,13 +315,36 @@
             alert('Error connecting to Firebase: ' + error.message);
         }
 
+        // Helper function to render avatar (emoji or image) - for DOM elements
+        function renderAvatar(element, avatarData) {
+            if (!element) return;
+
+            if (avatarData && avatarData.startsWith('data:image')) {
+                // It's an image
+                element.innerHTML = `<img src="${avatarData}" alt="Avatar">`;
+            } else {
+                // It's an emoji
+                element.textContent = avatarData || '😀';
+                element.innerHTML = avatarData || '😀'; // Clear any img tags
+            }
+        }
+
+        // Helper function to get avatar HTML string (for template strings)
+        function getAvatarHtml(avatarData) {
+            if (avatarData && avatarData.startsWith('data:image')) {
+                return `<img src="${avatarData}" alt="Avatar">`;
+            } else {
+                return avatarData || '😀';
+            }
+        }
+
         const currentUser = JSON.parse(localStorage.getItem('chatapp_user'));
 
         if (!currentUser) {
             window.location.href = 'index.html';
         }
 
-        document.getElementById('currentUserAvatar').textContent = currentUser.avatar;
+        renderAvatar(document.getElementById('currentUserAvatar'), currentUser.avatar);
         document.getElementById('currentUsername').textContent = currentUser.username;
 
         // Chat mode: 'public' or 'private'
@@ -538,7 +612,7 @@
 
             const statusClass = isOnline ? 'online' : 'offline';
             userElement.innerHTML = `
-                <div class="user-avatar">${user.avatar || '😀'}</div>
+                <div class="user-avatar">${getAvatarHtml(user.avatar || '😀')}</div>
                 <div class="user-name">${user.username || 'Unknown'}</div>
                 <div class="user-status-indicator ${statusClass}"></div>
             `;
@@ -746,7 +820,7 @@
 
                 return `
                     <div class="${messageClass}" data-message-id="${msg.messageId}">
-                        <div class="message-avatar">${avatar}</div>
+                        <div class="message-avatar">${getAvatarHtml(avatar)}</div>
                         <div class="message-content">
                             <div class="message-header">${username}</div>
                             <div class="message-bubble">
@@ -1447,6 +1521,136 @@
 
         // Profile Settings Functions
         let selectedProfileAvatar = currentUser.avatar;
+        let uploadedImageData = null;
+        let currentAvatarType = 'emoji'; // 'emoji' or 'image'
+
+        // Switch between emoji and image avatar types
+        function switchAvatarType(type) {
+            currentAvatarType = type;
+            const emojiTab = document.getElementById('emojiTab');
+            const imageTab = document.getElementById('imageTab');
+            const avatarSelector = document.getElementById('profileAvatarSelector');
+            const uploadSection = document.getElementById('avatarUploadSection');
+
+            if (type === 'emoji') {
+                emojiTab.classList.add('active');
+                imageTab.classList.remove('active');
+                avatarSelector.style.display = 'grid';
+                uploadSection.style.display = 'none';
+                uploadedImageData = null;
+            } else {
+                emojiTab.classList.remove('active');
+                imageTab.classList.add('active');
+                avatarSelector.style.display = 'none';
+                uploadSection.style.display = 'block';
+                setupImageUpload();
+            }
+        }
+
+        // Setup image upload functionality
+        function setupImageUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('avatarFileInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImage = document.getElementById('previewImage');
+
+            // Click to upload
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // File input change
+            fileInput.addEventListener('change', function(e) {
+                handleImageFile(e.target.files[0]);
+            });
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                handleImageFile(file);
+            });
+        }
+
+        // Handle image file upload
+        function handleImageFile(file) {
+            if (!file) return;
+
+            // Validate file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+            if (!validTypes.includes(file.type)) {
+                showProfileMessage('Please upload a PNG, JPG, or GIF image', 'error');
+                return;
+            }
+
+            // Validate file size (2MB max)
+            const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+            if (file.size > maxSize) {
+                showProfileMessage('Image size must be less than 2MB', 'error');
+                return;
+            }
+
+            // Read and convert to base64
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                uploadedImageData = base64Image;
+
+                // Show preview
+                const uploadArea = document.getElementById('uploadArea');
+                const imagePreview = document.getElementById('imagePreview');
+                const previewImage = document.getElementById('previewImage');
+                const currentAvatarDisplay = document.getElementById('currentAvatarDisplay');
+
+                uploadArea.style.display = 'none';
+                imagePreview.style.display = 'block';
+                previewImage.src = base64Image;
+
+                // Update current avatar display
+                currentAvatarDisplay.innerHTML = `<img src="${base64Image}" alt="Avatar">`;
+                selectedProfileAvatar = base64Image;
+            };
+
+            reader.onerror = function() {
+                showProfileMessage('Error reading file. Please try again.', 'error');
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // Remove uploaded image
+        function removeUploadedImage() {
+            uploadedImageData = null;
+            selectedProfileAvatar = currentUser.avatar;
+
+            const uploadArea = document.getElementById('uploadArea');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewImage = document.getElementById('previewImage');
+            const currentAvatarDisplay = document.getElementById('currentAvatarDisplay');
+            const fileInput = document.getElementById('avatarFileInput');
+
+            uploadArea.style.display = 'block';
+            imagePreview.style.display = 'none';
+            previewImage.src = '';
+            fileInput.value = '';
+
+            // Reset to current avatar
+            if (currentUser.avatar.startsWith('data:image')) {
+                currentAvatarDisplay.innerHTML = `<img src="${currentUser.avatar}" alt="Avatar">`;
+            } else {
+                currentAvatarDisplay.textContent = currentUser.avatar;
+            }
+        }
 
         function openProfileSettings() {
             const modal = document.getElementById('profileModal');
@@ -1454,9 +1658,25 @@
             const newUsernameInput = document.getElementById('newUsername');
 
             // Set current values
-            currentAvatarDisplay.textContent = currentUser.avatar;
+            renderAvatar(currentAvatarDisplay, currentUser.avatar);
             selectedProfileAvatar = currentUser.avatar;
             newUsernameInput.value = currentUser.username;
+
+            // Determine if current avatar is emoji or image
+            if (currentUser.avatar.startsWith('data:image')) {
+                switchAvatarType('image');
+                // Show the current image in preview
+                const imagePreview = document.getElementById('imagePreview');
+                const previewImage = document.getElementById('previewImage');
+                const uploadArea = document.getElementById('uploadArea');
+
+                uploadArea.style.display = 'none';
+                imagePreview.style.display = 'block';
+                previewImage.src = currentUser.avatar;
+                uploadedImageData = currentUser.avatar;
+            } else {
+                switchAvatarType('emoji');
+            }
 
             // Highlight current avatar
             const avatarOptions = document.querySelectorAll('#profileAvatarSelector .avatar-option');
@@ -1546,7 +1766,7 @@
                 localStorage.setItem('chatapp_user', JSON.stringify(currentUser));
 
                 // Update UI
-                document.getElementById('currentUserAvatar').textContent = selectedProfileAvatar;
+                renderAvatar(document.getElementById('currentUserAvatar'), selectedProfileAvatar);
 
                 showProfileMessage('Avatar updated successfully!', 'success');
             } catch (error) {
@@ -1654,7 +1874,7 @@
             const joined = document.getElementById('viewProfileJoined');
             const userIdDisplay = document.getElementById('viewProfileId');
 
-            avatar.textContent = user.avatar || '😀';
+            renderAvatar(avatar, user.avatar || '😀');
             username.textContent = user.username || 'Unknown User';
             userIdDisplay.textContent = userId.substring(0, 8) + '...';
 
@@ -2023,7 +2243,7 @@
 
                 // Show call modal
                 document.getElementById('callModal').style.display = 'flex';
-                document.getElementById('callAvatar').textContent = selectedUser.avatar;
+                renderAvatar(document.getElementById('callAvatar'), selectedUser.avatar);
                 document.getElementById('callUsername').textContent = selectedUser.username;
                 document.getElementById('callStatus').textContent = 'Calling...';
 
@@ -2040,15 +2260,22 @@
 
                 // Handle incoming tracks
                 peerConnection.ontrack = (event) => {
-                    if (!remoteStream) {
-                        remoteStream = new MediaStream();
-                        const audioElement = new Audio();
-                        audioElement.srcObject = remoteStream;
-                        audioElement.play();
+                    console.log('Received remote track:', event.track.kind);
+                    remoteStream = event.streams[0];
+
+                    // Create audio element and play remote stream
+                    const audioElement = document.getElementById('remoteAudio') || document.createElement('audio');
+                    audioElement.id = 'remoteAudio';
+                    audioElement.srcObject = remoteStream;
+                    audioElement.autoplay = true;
+                    audioElement.volume = 1.0;
+
+                    if (!document.getElementById('remoteAudio')) {
+                        document.body.appendChild(audioElement);
                     }
-                    event.streams[0].getTracks().forEach(track => {
-                        remoteStream.addTrack(track);
-                    });
+
+                    audioElement.play().catch(e => console.error('Error playing remote audio:', e));
+                    console.log('Remote audio setup complete');
                 };
 
                 // Handle ICE candidates
@@ -2124,7 +2351,7 @@
 
                 // Show incoming call modal
                 document.getElementById('incomingCallModal').style.display = 'flex';
-                document.getElementById('incomingCallAvatar').textContent = call.callerAvatar;
+                renderAvatar(document.getElementById('incomingCallAvatar'), call.callerAvatar);
                 document.getElementById('incomingCallUsername').textContent = call.callerName;
 
                 // Play ringtone
@@ -2141,7 +2368,7 @@
                 const callSnapshot = await database.ref(`calls/${currentCallId}`).once('value');
                 const call = callSnapshot.val();
 
-                document.getElementById('callAvatar').textContent = call.callerAvatar;
+                renderAvatar(document.getElementById('callAvatar'), call.callerAvatar);
                 document.getElementById('callUsername').textContent = call.callerName;
                 document.getElementById('callStatus').textContent = 'Connecting...';
 
@@ -2158,15 +2385,22 @@
 
                 // Handle incoming tracks
                 peerConnection.ontrack = (event) => {
-                    if (!remoteStream) {
-                        remoteStream = new MediaStream();
-                        const audioElement = new Audio();
-                        audioElement.srcObject = remoteStream;
-                        audioElement.play();
+                    console.log('Received remote track:', event.track.kind);
+                    remoteStream = event.streams[0];
+
+                    // Create audio element and play remote stream
+                    const audioElement = document.getElementById('remoteAudio') || document.createElement('audio');
+                    audioElement.id = 'remoteAudio';
+                    audioElement.srcObject = remoteStream;
+                    audioElement.autoplay = true;
+                    audioElement.volume = 1.0;
+
+                    if (!document.getElementById('remoteAudio')) {
+                        document.body.appendChild(audioElement);
                     }
-                    event.streams[0].getTracks().forEach(track => {
-                        remoteStream.addTrack(track);
-                    });
+
+                    audioElement.play().catch(e => console.error('Error playing remote audio:', e));
+                    console.log('Remote audio setup complete');
                 };
 
                 // Handle ICE candidates
@@ -2295,6 +2529,7 @@
         function startCallTimer() {
             callStartTime = Date.now();
             document.getElementById('callTimer').style.display = 'block';
+            document.getElementById('audioWaves').style.display = 'flex';
 
             callTimer = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
